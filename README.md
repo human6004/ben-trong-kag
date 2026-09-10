@@ -1,4 +1,4 @@
-# Bên trong KAG
+# KAG hoạt động thế nào
 
 Tài liệu tiếng Việt về KAG (Knowledge Augmented Generation) của OpenSPG, giải thích cơ chế
 bằng một bộ dữ liệu luật an ninh mạng và AI của Việt Nam thay vì ví dụ y khoa gốc trong repo.
