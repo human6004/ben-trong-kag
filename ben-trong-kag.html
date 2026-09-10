@@ -1101,7 +1101,7 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
       <marker id="d2r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
     </defs>
 
-    <text class="t-tiny" x="24" y="24">ĐƯỜNG VĂN BẢN TỰ DO · 4 LẦN GỌI LLM MỖI ĐIỀU, CHIA 2 ĐỢT</text>
+    <text class="t-tiny" x="24" y="24">ĐƯỜNG VĂN BẢN TỰ DO · 4 LẦN GỌI LLM MỖI ĐIỀU</text>
 
     <rect class="bx" x="24" y="42" width="96" height="46" rx="2"/><text class="t-lbl" x="72" y="62" text-anchor="middle">scanner</text><text class="t-tiny" x="72" y="78" text-anchor="middle">thư mục .md</text>
     <line class="ln" x1="120" y1="65" x2="146" y2="65" marker-end="url(#d2a)"/>
@@ -1109,19 +1109,20 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
     <line class="ln" x1="246" y1="65" x2="272" y2="65" marker-end="url(#d2a)"/>
     <rect class="bx" x="276" y="42" width="96" height="46" rx="2"/><text class="t-lbl" x="324" y="62" text-anchor="middle">splitter</text><text class="t-tiny" x="324" y="78" text-anchor="middle">cắt theo Điều</text>
 
-    <line class="ln-a" x1="372" y1="65" x2="402" y2="65" marker-end="url(#d2r)"/>
+    <path class="ln-a" d="M 372 65 L 388 65 L 388 82 L 403 82" marker-end="url(#d2r)"/>
 
     <!-- extractor cluster -->
     <rect class="panel" x="406" y="22" width="214" height="120" rx="3"/>
-    <text class="t-tiny" x="416" y="38">EXTRACTOR · SCHEMA-CONSTRAINT</text>
+    <text class="t-tiny" x="416" y="38" style="letter-spacing:.02em">EXTRACTOR · SCHEMA-CONSTRAINT</text>
     <rect class="bx-a" x="418" y="46" width="90" height="26" rx="2"/><text class="t-tiny" x="463" y="63" text-anchor="middle">1 · NER</text>
     <rect class="bx-a" x="518" y="46" width="90" height="26" rx="2"/><text class="t-tiny" x="563" y="63" text-anchor="middle">2 · sự kiện</text>
-    <line class="ln-a" x1="513" y1="72" x2="513" y2="82" marker-end="url(#d2r)"/>
+    <line class="ln-a" x1="463" y1="72" x2="463" y2="84" marker-end="url(#d2r)"/>
+    <line class="ln-a" x1="563" y1="72" x2="563" y2="84" marker-end="url(#d2r)"/>
     <rect class="bx-a" x="418" y="86" width="90" height="26" rx="2"/><text class="t-tiny" x="463" y="103" text-anchor="middle">3 · chuẩn hóa</text>
     <rect class="bx-a" x="518" y="86" width="90" height="26" rx="2"/><text class="t-tiny" x="563" y="103" text-anchor="middle">4 · quan hệ</text>
     <text class="t-tiny" x="513" y="130" text-anchor="middle">mỗi hàng là một đợt song song</text>
 
-    <line class="ln" x1="620" y1="82" x2="648" y2="82" marker-end="url(#d2a)"/>
+    <line class="ln" x1="623" y1="82" x2="648" y2="82" marker-end="url(#d2a)"/>
     <rect class="bx-g" x="652" y="58" width="104" height="46" rx="2"/><text class="t-lbl" x="704" y="78" text-anchor="middle">nối chunk</text><text class="t-tiny" x="704" y="94" text-anchor="middle">cạnh source</text>
     <line class="ln" x1="756" y1="82" x2="782" y2="82" marker-end="url(#d2a)"/>
     <rect class="bx-g" x="786" y="58" width="104" height="46" rx="2"/><text class="t-lbl" x="838" y="78" text-anchor="middle">vectorizer</text><text class="t-tiny" x="838" y="94" text-anchor="middle">noiDung_vector</text>
