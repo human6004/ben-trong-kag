@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RAG vs GraphRAG vs KAG",
+    "subtitle": "Cùng một câu hỏi y khoa, ba cách dựng chỉ mục và truy hồi khác nhau",
+    "output": "sd1-rag-graphrag-kag.html",
+    "viewBox": [1000, 760]
+  },
+  "stages": [
+    { "label": "Cách index" },
+    { "label": "Cách truy hồi" },
+    { "label": "LLM nhận được" },
+    { "label": "Hệ quả" }
+  ],
+  "nodes": [
+    { "id": "ragA", "type": "database", "label": "Chunk + vector", "sublabel": "cắt theo độ dài", "stage": 0, "row": 0, "tag": "RAG" },
+    { "id": "ragB", "type": "backend", "label": "Top-k cosine", "sublabel": "một lượt", "stage": 1, "row": 0 },
+    { "id": "ragC", "type": "frontend", "label": "9 đoạn văn thô", "sublabel": "không cấu trúc", "stage": 2, "row": 0 },
+    { "id": "ragD", "type": "external", "label": "Trượt câu 2 bước", "sublabel": "không bắc cầu", "stage": 3, "row": 0 },
+
+    { "id": "grA", "type": "database", "label": "Đồ thị OpenIE", "sublabel": "trích tự do", "stage": 0, "row": 2, "tag": "GraphRAG" },
+    { "id": "grB", "type": "backend", "label": "Duyệt cụm", "sublabel": "community", "stage": 1, "row": 2 },
+    { "id": "grC", "type": "frontend", "label": "Tóm tắt cụm", "sublabel": "đã qua LLM", "stage": 2, "row": 2 },
+    { "id": "grD", "type": "external", "label": "Nhiễu tam bộ", "sublabel": "khó lần nguồn", "stage": 3, "row": 2 },
+
+    { "id": "kgA", "type": "database", "label": "KG + Chunk", "sublabel": "chỉ mục hai chiều", "stage": 0, "row": 4, "tag": "KAG" },
+    { "id": "kgB", "type": "backend", "label": "Logical form", "sublabel": "planner + executor", "stage": 1, "row": 4 },
+    { "id": "kgC", "type": "frontend", "label": "SPO + chunk", "sublabel": "kèm nguồn trích", "stage": 2, "row": 4 },
+    { "id": "kgD", "type": "external", "label": "Truy nguồn được", "sublabel": "build đắt hơn", "stage": 3, "row": 4 }
+  ],
+  "flows": [
+    { "from": "ragA", "to": "ragB", "label": "embedding", "classification": "độ giống nhau", "route": "straight" },
+    { "from": "ragB", "to": "ragC", "label": "chunk thô", "classification": "top-k", "route": "straight" },
+    { "from": "ragC", "to": "ragD", "label": "một lượt đọc", "classification": "single-hop", "route": "straight" },
+
+    { "from": "grA", "to": "grB", "label": "tam bộ tự do", "classification": "schema-free", "route": "straight" },
+    { "from": "grB", "to": "grC", "label": "cụm thực thể", "classification": "cluster", "route": "straight" },
+    { "from": "grC", "to": "grD", "label": "tóm tắt lỏng", "classification": "mất chi tiết", "route": "straight" },
+
+    { "from": "kgA", "to": "kgB", "label": "SPO theo schema", "classification": "Medicine.schema", "variant": "emphasis", "route": "straight" },
+    { "from": "kgB", "to": "kgC", "label": "bằng chứng", "classification": "multi-hop", "variant": "emphasis", "route": "straight" },
+    { "from": "kgC", "to": "kgD", "label": "có reference", "classification": "lần được nguồn", "variant": "emphasis", "route": "straight" }
+  ],
+  "cards": [
+    { "dot": "slate", "title": "RAG thường", "items": ["Index là vector của đoạn văn", "Truy hồi bằng độ giống nhau, một lượt", "Chết ở câu hỏi bắc cầu và câu hỏi so sánh"] },
+    { "dot": "amber", "title": "GraphRAG", "items": ["Index là đồ thị trích tự do bằng OpenIE", "Truy hồi bằng cách duyệt cụm rồi tóm tắt cụm", "Nhiễu do tên thực thể không được chuẩn hóa"] },
+    { "dot": "emerald", "title": "KAG", "items": ["Index là đồ thị theo schema cộng chunk, trỏ ngược lẫn nhau", "Truy hồi theo kế hoạch logical form, đi nhiều bước", "Câu trả lời kèm nguồn trích, đổi lại chi phí build cao"] }
+  ]
+}

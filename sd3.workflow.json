@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Luồng end-to-end của KAG",
+    "subtitle": "Nửa BUILD (kag/builder) và nửa SOLVE (kag/solver) · ô nào có tag LLM là có gọi mô hình",
+    "output": "sd3-luong-end-to-end.html"
+  },
+  "lanes": [
+    { "id": "b1", "label": "BUILD 1 · đọc và cắt" },
+    { "id": "b2", "label": "BUILD 2 · trích và ghi" },
+    { "id": "sv", "label": "SOLVE · trả lời câu hỏi" }
+  ],
+  "nodes": [
+    { "id": "scanner", "lane": "b1", "col": 0, "type": "external", "label": "scanner", "sublabel": "csv_scanner", "width": 92 },
+    { "id": "reader", "lane": "b1", "col": 2, "type": "backend", "label": "reader", "sublabel": "dict_reader", "width": 104 },
+    { "id": "splitter", "lane": "b1", "col": 4, "type": "backend", "label": "splitter", "sublabel": "length_splitter", "width": 96 },
+
+    { "id": "extractor", "lane": "b2", "col": 0, "type": "security", "label": "extractor", "sublabel": "schema_free", "tag": "LLM x3", "width": 92 },
+    { "id": "aligner", "lane": "b2", "col": 2, "type": "backend", "label": "aligner", "sublabel": "post_processor", "width": 104 },
+    { "id": "vectorizer", "lane": "b2", "col": 4, "type": "cloud", "label": "vectorizer", "sublabel": "batch", "tag": "embed", "width": 96 },
+    { "id": "writer", "lane": "b2", "col": 5, "type": "database", "label": "writer", "sublabel": "kg_writer", "width": 96 },
+
+    { "id": "q", "lane": "sv", "col": 0, "type": "frontend", "label": "question", "sublabel": "câu hỏi y khoa", "width": 92 },
+    { "id": "planner", "lane": "sv", "col": 2, "type": "security", "label": "planner", "sublabel": "static / iterative", "tag": "LLM", "width": 104 },
+    { "id": "executor", "lane": "sv", "col": 4, "type": "backend", "label": "executor", "sublabel": "retrieve + math", "tag": "LLM", "width": 96 },
+    { "id": "generator", "lane": "sv", "col": 5, "type": "security", "label": "generator", "sublabel": "llm_index_gen", "tag": "LLM", "width": 96 }
+  ],
+  "edges": [
+    { "from": "scanner", "to": "reader" },
+    { "from": "reader", "to": "splitter" },
+    { "from": "splitter", "to": "extractor", "label": "mỗi chunk một luồng", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop", "bias": 0.5 },
+    { "from": "extractor", "to": "aligner" },
+    { "from": "aligner", "to": "vectorizer" },
+    { "from": "vectorizer", "to": "writer" },
+    { "from": "writer", "to": "q", "label": "build xong mới hỏi được", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "route": "drop", "bias": 0.5 },
+    { "from": "q", "to": "planner" },
+    { "from": "planner", "to": "executor", "label": "logical form", "variant": "emphasis" },
+    { "from": "executor", "to": "generator" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "BUILD · nơi tạo chỉ mục hai chiều", "items": ["extractor thêm node Chunk và cạnh source từ thực thể về chunk", "vectorizer nhúng embedding thẳng vào property của node", "writer đẩy cả đồ thị lẫn vector qua một lần ghi"] },
+    { "dot": "amber", "title": "SOLVE · nơi tiêu tốn LLM", "items": ["planner chia câu hỏi thành các Task", "executor gọi kg_cs + kg_fr + rc rồi merge kết quả", "generator viết câu trả lời kèm reference"] },
+    { "dot": "slate", "title": "Bước không gọi LLM", "items": ["scanner, reader, splitter, aligner, writer", "vectorizer chỉ gọi model embedding, không gọi chat", "mapping cho dữ liệu có cấu trúc đi thẳng vào đồ thị"] }
+  ]
+}

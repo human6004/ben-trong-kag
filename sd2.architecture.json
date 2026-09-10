@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Kiến trúc tổng thể KAG",
+    "subtitle": "KAG Python → knext → OpenSPG engine (Docker) → kho đồ thị và chỉ mục vector",
+    "output": "sd2-kien-truc.html"
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "Người dùng", "sublabel": "evaForMedicine.py", "pos": [300, 60], "size": [210, 64] },
+    { "id": "llm", "type": "external", "label": "LLM + Embedding", "sublabel": "API tương thích OpenAI", "pos": [40, 360], "size": [170, 64], "tag": "tốn phí" },
+
+    { "id": "solver", "type": "backend", "label": "kag/solver", "sublabel": "planner + executor + generator", "pos": [300, 240], "size": [210, 64] },
+    { "id": "builder", "type": "backend", "label": "kag/builder", "sublabel": "scanner → ... → writer", "pos": [300, 430], "size": [210, 64] },
+
+    { "id": "knext", "type": "cloud", "label": "knext/", "sublabel": "REST client + CLI", "pos": [590, 335], "size": [160, 64], "tag": "schema commit" },
+
+    { "id": "spg", "type": "cloud", "label": "openspg-server", "sublabel": "Docker :8887", "pos": [850, 335], "size": [160, 64] },
+    { "id": "schema", "type": "security", "label": "Medicine.schema", "sublabel": "Disease, Symptom, ...", "pos": [850, 150], "size": [160, 64] },
+
+    { "id": "graph", "type": "database", "label": "Kho đồ thị", "sublabel": "SPO + node Chunk", "pos": [1100, 240], "size": [160, 64] },
+    { "id": "vec", "type": "database", "label": "Chỉ mục vector", "sublabel": "embedding trong property", "pos": [1100, 430], "size": [160, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "KAG · Python chạy trên máy bạn", "wraps": ["solver", "builder"] },
+    { "kind": "region", "label": "OpenSPG engine · Docker", "wraps": ["spg", "schema", "graph", "vec"] }
+  ],
+  "connections": [
+    { "from": "user", "to": "solver", "label": "câu hỏi", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [452, 186] },
+    { "from": "llm", "to": "solver", "label": "gọi khi hỏi", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [252, 344] },
+    { "from": "llm", "to": "builder", "label": "gọi khi build", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [252, 448] },
+
+    { "from": "solver", "to": "knext", "label": "search / graph API", "variant": "emphasis", "fromSide": "right", "toSide": "top", "labelAt": [590, 262] },
+    { "from": "builder", "to": "knext", "label": "write_graph", "fromSide": "right", "toSide": "bottom", "labelAt": [592, 452] },
+    { "from": "knext", "to": "spg", "label": "HTTP REST", "variant": "emphasis", "route": "straight", "labelAt": [800, 357] },
+
+    { "from": "spg", "to": "graph", "label": "truy vấn SPO", "fromSide": "right", "toSide": "left", "labelAt": [1057, 310] },
+    { "from": "spg", "to": "vec", "label": "tìm vector", "fromSide": "right", "toSide": "left", "labelAt": [1057, 425] },
+    { "from": "schema", "to": "spg", "label": "ràng buộc", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [930, 278] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Phía Python", "items": ["kag/builder dựng đồ thị từ tài liệu", "kag/solver trả lời câu hỏi", "Cả hai chỉ nói chuyện với engine qua knext"] },
+    { "dot": "violet", "title": "knext", "items": ["Client REST sinh từ OpenAPI, kèm CLI", "knext project create / schema commit / reasoner execute", "Là ranh giới duy nhất giữa Python và engine"] },
+    { "dot": "emerald", "title": "OpenSPG engine", "items": ["Chạy bằng docker-compose lấy từ repo OpenSPG/openspg", "Giữ schema, đồ thị và vector", "KAG không nói trực tiếp tới graph database"] }
+  ]
+}
