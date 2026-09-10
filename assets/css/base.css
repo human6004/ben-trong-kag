@@ -1,0 +1,12 @@
+/* Reset, thân trang, alias font
+   Sinh từ ben-trong-kag.html khi tách file. Sửa ở đây, không sửa trong HTML. */
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:16.5px; line-height:1.62;
+}
+.zh{font-family:var(--cjk)}
+code,pre,.mono{font-family:var(--mono)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}

@@ -1,0 +1,33 @@
+/* Biến màu, biến font, ba trạng thái sáng/tối
+   Sinh từ ben-trong-kag.html khi tách file. Sửa ở đây, không sửa trong HTML. */
+
+:root{
+  --ground:#EDEBE6; --surface:#F9F8F5; --surface-2:#F2F0EB; --surface-3:#E5E2DB;
+  --ink:#22211D; --ink-2:#55524A; --ink-3:#615D55;
+  --rule:#C8C3B9; --rule-soft:#DCD8D0;
+  --carmine:#9A3520; --carmine-wash:#F7EBE6;
+  --prussian:#1D5750; --prussian-wash:#E6F0EE;
+  --ochre:#7A5A10; --ochre-wash:#F4EEDC;
+  --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --sans:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Consolas,monospace;
+  --cjk:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#1A1917; --surface:#22211E; --surface-2:#282723; --surface-3:#33312C;
+    --ink:#E3E0D9; --ink-2:#B3AEA3; --ink-3:#9C978C;
+    --rule:#413E38; --rule-soft:#302E29;
+    --carmine:#E8907A; --carmine-wash:#2E211C;
+    --prussian:#79C5B6; --prussian-wash:#172A27;
+    --ochre:#D9B564; --ochre-wash:#2A2517;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1A1917; --surface:#22211E; --surface-2:#282723; --surface-3:#33312C;
+  --ink:#E3E0D9; --ink-2:#B3AEA3; --ink-3:#9C978C;
+  --rule:#413E38; --rule-soft:#302E29;
+  --carmine:#E8907A; --carmine-wash:#2E211C;
+  --prussian:#79C5B6; --prussian-wash:#172A27;
+  --ochre:#D9B564; --ochre-wash:#2A2517;
+}

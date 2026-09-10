@@ -4,9 +4,9 @@
 > Repo: https://github.com/OpenSPG/KAG.git — ví dụ chạy xuyên suốt: `kag/examples/medicine/`
 >
 > Kèm 3 sơ đồ HTML trong cùng thư mục (mở bằng trình duyệt, có nút dark/light và export PNG/SVG):
-> - `sd1-rag-graphrag-kag.html`
-> - `sd2-kien-truc.html`
-> - `sd3-luong-end-to-end.html`
+> - `diagrams/sd1-rag-graphrag-kag.html`
+> - `diagrams/sd2-kien-truc.html`
+> - `diagrams/sd3-luong-end-to-end.html`
 >
 > File `.json` cùng tên là source của sơ đồ, sửa rồi render lại bằng skill archify.
 
@@ -36,7 +36,7 @@ Trong dữ liệu, `SPO.csv` có dòng `Panic_disorder,has_symptom,Anxiety_and_n
 | **GraphRAG** | Đồ thị OpenIE tự do | Duyệt cụm, tóm tắt cụm | Trả lời được câu hỏi tổng quan | Nhiễu tên thực thể, khó lần về nguồn |
 | **KAG** | Đồ thị theo schema + chunk, trỏ ngược nhau | Logical form nhiều bước, lai đồ thị và vector | Đa bước, có nguồn trích, hợp domain hẹp | Build đắt, cần schema, cần Docker |
 
-### [SĐ-1] `sd1-rag-graphrag-kag.html`
+### [SĐ-1] `diagrams/sd1-rag-graphrag-kag.html`
 
 **Cách đọc:**
 - Ba hàng ngang là ba cách làm, đọc trái sang phải.
@@ -67,7 +67,7 @@ Trong dữ liệu, `SPO.csv` có dòng `Panic_disorder,has_symptom,Anxiety_and_n
 → `kag/solver/planner/lf_kag_static_planner.py`
 → `kag/solver/executor/`
 
-### [SĐ-2] `sd2-kien-truc.html`
+### [SĐ-2] `diagrams/sd2-kien-truc.html`
 
 **Cách đọc:**
 - Người dùng ở trên cùng, câu hỏi đi thẳng xuống `kag/solver`.
@@ -82,7 +82,7 @@ Một điểm cần nói rõ: **repo KAG này không chứa file docker-compose*
 
 ## 3. Luồng hoạt động
 
-### [SĐ-3] `sd3-luong-end-to-end.html`
+### [SĐ-3] `diagrams/sd3-luong-end-to-end.html`
 
 **Cách đọc:**
 - Hai làn trên là nửa BUILD, làn dưới là nửa SOLVE.

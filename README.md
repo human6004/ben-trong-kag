@@ -3,18 +3,35 @@
 Tài liệu tiếng Việt về KAG (Knowledge Augmented Generation) của OpenSPG, giải thích cơ chế
 bằng một bộ dữ liệu luật an ninh mạng và AI của Việt Nam thay vì ví dụ y khoa gốc trong repo.
 
-## Nội dung
+Trang đọc: <https://human6004.github.io/ben-trong-kag/>
 
-| File | Là gì |
-|---|---|
-| `ben-trong-kag.html` | Trang chính. Chín mục, chín sơ đồ, đi từ câu hỏi thử tới file cần sửa. Mở thẳng bằng trình duyệt, có nút chuyển nền sáng tối. |
-| `KAG-giai-thich.md` | Bản tóm tắt ngắn, đọc trong khoảng 30 phút. |
-| `sd1-rag-graphrag-kag.html` | Sơ đồ so sánh RAG, GraphRAG và KAG. |
-| `sd2-kien-truc.html` | Sơ đồ kiến trúc tổng thể. |
-| `sd3-luong-end-to-end.html` | Sơ đồ luồng từ đầu tới cuối. |
-| `sd*.json` | Mô tả nguồn của ba sơ đồ trên. |
+## Cấu trúc
 
-Mọi file HTML đều tự chứa, không cần build, không gọi mạng ngoài trừ font Google.
+```
+index.html              trang chính, chín mục và chín sơ đồ
+assets/css/
+  tokens.css            biến màu, biến font, ba trạng thái sáng/tối
+  base.css              reset, thân trang, alias font
+  layout.css            rail, main, hero, tiêu đề mục, chân trang, mobile
+  components.css        callout, khối mã, bảng, tab, chip, stepper, thẻ, từ điển
+  diagram.css           lớp dùng chung cho sơ đồ SVG
+assets/js/app.js        đổi nền sáng/tối, tab, stepper, tô sáng mục lục
+diagrams/               ba sơ đồ rời, mỗi cái một file tự chứa, kèm .json mô tả nguồn
+docs/KAG-giai-thich.md  bản tóm tắt ngắn, đọc trong khoảng 30 phút
+```
+
+Chín sơ đồ trong `index.html` là SVG nội tuyến, không tách ra file `.svg` được vì chúng
+lấy màu từ biến CSS của trang để đổi theo nền sáng tối. Ảnh nhúng bằng thẻ `img` không
+kế thừa biến đó.
+
+Không có bước build. Mở `index.html` bằng trình duyệt là chạy. Mạng chỉ dùng để tải font
+Google, tắt mạng thì rơi về font hệ thống.
+
+## Thứ tự nạp CSS
+
+Năm file phải giữ đúng thứ tự trong `index.html`. Khối `@media (max-width:900px)` nằm
+cuối `layout.css` sửa `.shell`, `.rail`, `.toc`, `.wrap`, `.hero` và `footer`, nên các
+khai báo gốc của những selector đó phải nằm cùng file và đứng trước nó.
 
 ## Nguồn
 
