@@ -1,7 +1,7 @@
 <title>Bên trong KAG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap">
 
 <style>
 :root{
@@ -11,9 +11,9 @@
   --carmine:#9A3520; --carmine-wash:#F7EBE6;
   --prussian:#1D5750; --prussian-wash:#E6F0EE;
   --ochre:#7A5A10; --ochre-wash:#F4EEDC;
-  --serif:'Spectral',Georgia,'Times New Roman',serif;
-  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace;
+  --serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --sans:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Consolas,monospace;
   --cjk:'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif;
 }
 @media (prefers-color-scheme:dark){
@@ -1632,6 +1632,7 @@ cd solver  &amp;&amp; python evalForLegal.py &amp;&amp; cd ..</code></pre>
     else if(cur==='light'){ next='dark'; }
     else { next=window.matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark'; }
     root.setAttribute('data-theme',next);
+    root.style.display='none'; void root.offsetHeight; root.style.display='';
     try{ localStorage.setItem('kag-theme',next); }catch(e){}
   });
 
