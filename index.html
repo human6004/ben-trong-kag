@@ -24,12 +24,12 @@
   <div class="rail-mark">KAG hoạt động thế nào<span>Knowledge Augmented Generation</span></div>
   <ul class="toc" id="toc">
     <li><a href="#s1"><em>01</em><span>Một câu hỏi, ba câu trả lời</span></a></li>
-    <li><a href="#s2"><em>02</em><span>Ba kiểu chỉ mục</span></a></li>
+    <li><a href="#s2"><em>02</em><span>Ba kiểu index</span></a></li>
     <li><a href="#s3"><em>03</em><span>Từ vựng cần nắm</span></a></li>
-    <li><a href="#s4"><em>04</em><span>Dựng đồ thị tri thức</span></a></li>
-    <li><a href="#s5"><em>05</em><span>Chỉ mục hai chiều</span></a></li>
-    <li><a href="#s5b"><em>06</em><span>Sáu bộ chỉ mục</span></a></li>
-    <li><a href="#s6"><em>07</em><span>Luồng trả lời</span></a></li>
+    <li><a href="#s4"><em>04</em><span>Dựng knowledge graph</span></a></li>
+    <li><a href="#s5"><em>05</em><span>Knowledge–chunk mutual index</span></a></li>
+    <li><a href="#s5b"><em>06</em><span>Sáu index manager</span></a></li>
+    <li><a href="#s6"><em>07</em><span>Solver</span></a></li>
     <li><a href="#s7"><em>08</em><span>Dùng hay không dùng</span></a></li>
     <li><a href="#s8"><em>09</em><span>Đụng vào file nào</span></a></li>
     <li><a href="cau-truc-va-luong.html"><em>&rarr;</em><span>Cấu trúc và luồng chạy KAG</span></a></li>
@@ -74,8 +74,8 @@
 
   <div class="panel-body" id="p-rag" role="tabpanel" aria-labelledby="t-rag">
     <span class="verdict v-bad">Trả lời trượt, và trượt nguy hiểm</span>
-    <p><strong>Nó làm gì:</strong> nhúng câu hỏi thành vector, lấy ra 9 đoạn văn có vector gần nhất, ném hết cho LLM đọc. Một lượt, không có bước hai.</p>
-    <h4>Đoạn văn lấy về</h4>
+    <p><strong>Nó làm gì:</strong> embed câu hỏi thành vector, lấy ra 9 đoạn văn có vector gần nhất, ném hết cho LLM đọc. Một lượt, không có bước hai.</p>
+    <h4>Chunk lấy về</h4>
     <div class="retrieved">
       <div class="chip miss">Luật 116/2025 · Điều 7 — “…sử dụng trí tuệ nhân tạo hoặc công nghệ mới để giả mạo video, hình ảnh, giọng nói của người khác…”</div>
       <div class="chip miss">Luật 24/2018 · Điều 8 — “…các hành vi bị nghiêm cấm về an ninh mạng…”</div>
@@ -83,26 +83,26 @@
     </div>
     <p><strong>Vì sao trượt:</strong> cả ba đoạn đều nói về giả mạo bằng AI, không đoạn nào có con số tiền phạt. Độ giống nhau kéo kết quả về phía từ khóa trong câu hỏi, mà số tiền thì không có trong câu hỏi. LLM đọc ba đoạn này chỉ có thể đoán bừa hoặc trả lời là không biết.</p>
     <p><strong>Và cái sai nặng hơn:</strong> đoạn thứ hai đến từ một luật đã bị thay thế. Với dữ liệu y khoa, lấy nhầm đoạn chỉ làm câu trả lời kém. Với dữ liệu luật, lấy nhầm đoạn nghĩa là dẫn một căn cứ không còn tồn tại. Vector không biết gì về hiệu lực, vì hiệu lực không nằm trong chữ của điều luật.</p>
-    <p class="note">Đây là điểm chết cố hữu của truy hồi một lượt: nó không có cách nào biết rằng cần đi tìm tiếp một vòng nữa, cũng không có chỗ nào để đặt một bộ lọc theo trạng thái văn bản.</p>
+    <p class="note">Đây là điểm chết cố hữu của retrieval một lượt: nó không có cách nào biết rằng cần đi tìm tiếp một vòng nữa, cũng không có chỗ nào để đặt một bộ lọc theo trạng thái văn bản.</p>
   </div>
 
   <div class="panel-body" id="p-gr" role="tabpanel" aria-labelledby="t-gr" hidden>
     <span class="verdict v-mid">Đúng một nửa</span>
-    <p><strong>Nó làm gì:</strong> đã có đồ thị nên bắc cầu được từ hành vi sang điều khoản sang mức phạt. Nhưng đồ thị dựng bằng OpenIE trích tự do, LLM đặt tên node và tên quan hệ tùy hứng theo từng đoạn văn.</p>
+    <p><strong>Nó làm gì:</strong> đã có đồ thị nên multi-hop được từ hành vi sang điều khoản sang mức phạt. Nhưng đồ thị dựng bằng OpenIE trích tự do, LLM đặt tên node và tên quan hệ tùy hứng theo từng đoạn văn.</p>
     <h4>Đồ thị lấy về</h4>
     <div class="retrieved">
       <div class="chip hit">giả mạo sinh trắc học <span style="color:var(--ink-3)">—bị cấm tại—&gt;</span> Điều 34</div>
       <div class="chip miss">Luật An ninh mạng <span style="color:var(--ink-3)">— node riêng</span></div>
       <div class="chip miss">Luật số 24/2018/QH14 <span style="color:var(--ink-3)">— node riêng, cùng một văn bản</span></div>
     </div>
-    <p><strong>Vì sao chỉ đúng một nửa:</strong> cùng một văn bản bị tách thành nhiều node vì mỗi đoạn viết một kiểu, lúc là <span class="mono">Luật An ninh mạng</span>, lúc là <span class="mono">Luật số 24/2018/QH14</span>, lúc chỉ là <span class="mono">Luật này</span>. Quan hệ thì lúc là <span class="mono">thay thế</span>, lúc là <span class="mono">bãi bỏ</span>, lúc là <span class="mono">hết hiệu lực kể từ</span>. Máy không gộp được, nên đi bắc cầu hay đứt giữa chừng.</p>
+    <p><strong>Vì sao chỉ đúng một nửa:</strong> cùng một văn bản bị tách thành nhiều node vì mỗi đoạn viết một kiểu, lúc là <span class="mono">Luật An ninh mạng</span>, lúc là <span class="mono">Luật số 24/2018/QH14</span>, lúc chỉ là <span class="mono">Luật này</span>. Quan hệ thì lúc là <span class="mono">thay thế</span>, lúc là <span class="mono">bãi bỏ</span>, lúc là <span class="mono">hết hiệu lực kể từ</span>. Máy không gộp được, nên đi multi-hop hay đứt giữa chừng.</p>
     <p><strong>Và vấn đề riêng của luật:</strong> node không có kiểu thì cũng không có property có kiểu. Không có ô nào tên <span class="mono">conHieuLuc</span> để lọc. Hệ thống không thể phân biệt điều khoản của luật đang áp dụng với điều khoản của luật đã chết, vì với nó cả hai chỉ là những cụm chữ có vector gần nhau.</p>
     <p class="note">Vấn đề không phải là thiếu đồ thị. Vấn đề là đồ thị không có ai quy định trước cái gì được phép tồn tại, và cái gì bắt buộc phải có.</p>
   </div>
 
   <div class="panel-body" id="p-kag" role="tabpanel" aria-labelledby="t-kag" hidden>
     <span class="verdict v-ok">Trả lời đúng, kèm nguồn, đã lọc hiệu lực</span>
-    <p><strong>Nó làm gì:</strong> schema đã khai báo sẵn <span class="mono">HanhVi.biCamBoi</span>, <span class="mono">DieuKhoan.cheTai</span> và <span class="mono">VanBan.conHieuLuc</span>. Planner biết ba thứ đó tồn tại nên viết được kế hoạch nhiều bước trước khi đi tìm.</p>
+    <p><strong>Nó làm gì:</strong> schema đã khai báo sẵn <span class="mono">HanhVi.biCamBoi</span>, <span class="mono">DieuKhoan.cheTai</span> và <span class="mono">VanBan.conHieuLuc</span>. Planner biết ba thứ đó tồn tại nên viết được logical form nhiều bước trước khi đi tìm.</p>
     <h4>Kế hoạch planner sinh ra</h4>
 <pre><code>Step1: Hành vi giả mạo khuôn mặt, giọng nói bằng AI
        bị cấm ở điều khoản nào?
@@ -120,17 +120,17 @@ Action3: Retrieval(s=o1, p=p3:cheTai, o=o3:CheTai)
 Step4: output(o3, o2)</code></pre>
     <span class="src">minh họa · viết theo đúng cú pháp <span class="mono">function_declaration</span> trong kag/solver/prompt/logic_form_plan.py, không phải log chạy thật</span>
     <p><strong>Vì sao đúng:</strong> bước 2 và 3 lấy kết quả bước 1 làm đầu vào. Điều kiện <span class="mono">o.conHieuLuc</span> là bộ lọc theo property, đúng cú pháp mà repo khai trong khai báo hàm <span class="mono">Retrieval</span>. Mỗi thực thể tìm được đều còn cạnh <span class="mono">source</span> trỏ về đúng điều khoản đã sinh ra nó, nên câu trả lời dẫn được “Điều 34 khoản 2 điểm c Nghị định 330/2026/NĐ-CP” thay vì bắt người đọc tin.</p>
-    <p class="note">Đổi lại: phải có người ngồi viết schema trước, phải có người tra và ghi trạng thái hiệu lực cho từng văn bản, và mỗi đoạn văn tốn ba tới bốn lần gọi LLM lúc dựng chỉ mục.</p>
+    <p class="note">Đổi lại: phải có người ngồi viết schema trước, phải có người tra và ghi trạng thái hiệu lực cho từng văn bản, và mỗi đoạn văn tốn ba tới bốn lần gọi LLM lúc dựng index.</p>
   </div>
 </section>
 
 <!-- ============ 02 ============ -->
 <section id="s2">
-  <div class="sec-head"><span class="sec-num">02</span><h2>Ba kiểu chỉ mục</h2></div>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Ba kiểu index</h2></div>
   <p class="sec-sub">Khác biệt thật sự không nằm ở lúc trả lời, mà nằm ở <strong>cái gì được cất vào kho</strong>. Hình dưới vẽ đúng thứ mỗi hệ thống lưu cho cùng một tập văn bản.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 960 400" role="img" aria-label="So sánh ba kiểu chỉ mục: RAG lưu các điều luật rời rạc, GraphRAG lưu đồ thị không có kiểu trong đó một văn bản bị tách thành hai node vì có hai cách gọi tên, KAG lưu đồ thị có kiểu cộng các đoạn văn và giữ cạnh source nối hai bên">
+  <svg class="dg" viewBox="0 0 960 400" role="img" aria-label="So sánh ba kiểu index: RAG lưu các điều luật rời rạc, GraphRAG lưu đồ thị không có kiểu trong đó một văn bản bị tách thành hai node vì có hai cách gọi tên, KAG lưu đồ thị có kiểu cộng các đoạn văn và giữ cạnh source nối hai bên">
     <defs>
       <marker id="d1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="d1g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
@@ -139,14 +139,14 @@ Step4: output(o3, o2)</code></pre>
     <!-- panel 1 : RAG -->
     <rect class="panel" x="16" y="46" width="290" height="336" rx="3"/>
     <text class="t-head" x="30" y="32">RAG thường</text>
-    <text class="t-tiny" x="30" y="66">CHỈ CÓ ĐOẠN VĂN</text>
+    <text class="t-tiny" x="30" y="66">CHỈ CÓ CHUNK</text>
     <rect class="bx" x="34" y="82" width="254" height="40" rx="2"/><text class="t-lbl" x="46" y="106">Điều 7 · vector[768]</text>
     <rect class="bx" x="34" y="132" width="254" height="40" rx="2"/><text class="t-lbl" x="46" y="156">Điều 34 · vector[768]</text>
     <rect class="bx" x="34" y="182" width="254" height="40" rx="2"/><text class="t-lbl" x="46" y="206">Điều 8 · vector[768]</text>
     <rect class="bx" x="34" y="232" width="254" height="40" rx="2"/><text class="t-lbl" x="46" y="256">Điều 2 · vector[768]</text>
     <text class="t-tiny" x="46" y="300">KHÔNG BIẾT ĐIỀU NÀO</text>
     <text class="t-tiny" x="46" y="316">THUỘC VĂN BẢN NÀO</text>
-    <text class="t-lbl" x="46" y="348">Bắc cầu = bất khả thi</text>
+    <text class="t-lbl" x="46" y="348">Multi-hop = bất khả thi</text>
 
     <!-- panel 2 : GraphRAG -->
     <rect class="panel" x="330" y="46" width="290" height="336" rx="3"/>
@@ -163,12 +163,12 @@ Step4: output(o3, o2)</code></pre>
     <circle class="bx-a" cx="562" cy="266" r="26"/><text class="t-lbl" x="562" y="270" text-anchor="middle">24/2018</text>
     <text class="t-tiny" x="344" y="316">HAI NODE, MỘT VĂN BẢN</text>
     <text class="t-tiny" x="344" y="332">KHÔNG CÓ Ô NÀO GHI HIỆU LỰC</text>
-    <text class="t-lbl" x="344" y="360">Bắc cầu được, nhưng hay đứt</text>
+    <text class="t-lbl" x="344" y="360">Multi-hop được, nhưng hay đứt</text>
 
     <!-- panel 3 : KAG -->
     <rect class="panel" x="644" y="46" width="300" height="336" rx="3"/>
     <text class="t-head" x="658" y="32">KAG</text>
-    <text class="t-tiny" x="658" y="66">ĐỒ THỊ CÓ KIỂU + ĐOẠN VĂN</text>
+    <text class="t-tiny" x="658" y="66">ĐỒ THỊ CÓ KIỂU + CHUNK</text>
     <line class="ln-a" x1="764" y1="112" x2="806" y2="112" marker-end="url(#d1a)"/>
     <text class="t-tiny" x="785" y="104" text-anchor="middle">biCamBoi</text>
     <line class="ln-a" x1="866" y1="134" x2="866" y2="176" marker-end="url(#d1a)"/>
@@ -184,7 +184,7 @@ Step4: output(o3, o2)</code></pre>
     <rect class="bx" x="798" y="276" width="128" height="34" rx="2"/><text class="t-lbl" x="862" y="297" text-anchor="middle">NĐ 330/2026</text>
     <text class="t-tiny" x="658" y="336">MỖI NODE CÓ KIỂU CỐ ĐỊNH</text>
     <text class="t-tiny" x="658" y="352">VÀ ĐƯỜNG VỀ ĐIỀU KHOẢN GỐC</text>
-    <text class="t-lbl" x="658" y="378">Bắc cầu được và dẫn được nguồn</text>
+    <text class="t-lbl" x="658" y="378">Multi-hop được và dẫn được nguồn</text>
   </svg>
   <figcaption><strong>Cùng một tập văn bản, ba kho khác nhau.</strong> RAG chỉ có các điều luật rời, không biết điều nào thuộc văn bản nào. GraphRAG có đường nối nhưng hai node <span>Luật cũ</span> và <span>24/2018</span> là một văn bản bị tách đôi, và không có chỗ nào ghi hiệu lực. KAG gắn kiểu cho từng node, đặt tên quan hệ theo schema, và giữ cạnh <span class="mono">source</span> nét đứt nối ngược về điều khoản gốc trong đúng văn bản.</figcaption>
   </figure>
@@ -193,9 +193,9 @@ Step4: output(o3, o2)</code></pre>
   <table>
     <thead><tr><th>Chiều</th><th>RAG</th><th>GraphRAG</th><th>KAG</th></tr></thead>
     <tbody>
-      <tr><td><strong>Đơn vị lưu</strong></td><td>Đoạn văn + vector</td><td>Node + cạnh, không kiểu</td><td>Node có kiểu + cạnh có tên + đoạn văn</td></tr>
+      <tr><td><strong>Đơn vị lưu</strong></td><td>Chunk + vector</td><td>Node + cạnh, không kiểu</td><td>Node có kiểu + cạnh có tên + chunk</td></tr>
       <tr><td><strong>Ai quyết định cấu trúc</strong></td><td>Không ai, cắt theo độ dài</td><td>LLM tự quyết theo từng đoạn</td><td>Chuyên gia, viết trong file schema</td></tr>
-      <tr><td><strong>Bắc cầu nhiều bước</strong></td><td>Không</td><td>Được nhưng dễ đứt</td><td>Được, theo kế hoạch có cú pháp</td></tr>
+      <tr><td><strong>Multi-hop</strong></td><td>Không</td><td>Được nhưng dễ đứt</td><td>Được, theo logical form</td></tr>
       <tr><td><strong>Lọc theo hiệu lực</strong></td><td>Không có chỗ để lọc</td><td>Không, node không có property có kiểu</td><td>Được, <span class="mono">o.conHieuLuc=`true`</span></td></tr>
       <tr><td><strong>Dẫn nguồn</strong></td><td>Được, tới đoạn văn</td><td>Khó, node mất đường về</td><td>Được, tới đúng điều khoản qua cạnh <span class="mono">source</span></td></tr>
       <tr><td><strong>Chi phí dựng</strong></td><td>Gần như bằng không</td><td>Vài lần gọi LLM mỗi đoạn</td><td>Ba tới bốn lần gọi LLM mỗi đoạn, cộng công viết schema và tra hiệu lực</td></tr>
@@ -203,28 +203,28 @@ Step4: output(o3, o2)</code></pre>
   </table>
   </div>
 
-  <h3>Vì sao vector không bắc cầu được</h3>
-  <p class="col">Toàn bộ phép truy hồi của RAG nằm gọn trong ba dòng. Đây là mã thật trong repo, không rút gọn.</p>
+  <h3>Vì sao vector không multi-hop được</h3>
+  <p class="col">Toàn bộ phép retrieval của RAG nằm gọn trong ba dòng. Đây là mã thật trong repo, không rút gọn.</p>
 <pre><code>cosine_similarity = filtered_vectors @ query_vector
 scores = 0.5 * cosine_similarity + 0.5
 top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
   <span class="src">từ repo · kag/common/graphstore/memory_graph.py, hàm <span class="mono">vector_search</span></span>
 
-  <p class="col">Nhân ma trận để lấy cosine giữa câu hỏi và mọi đoạn, đổi thang từ khoảng âm một tới một về khoảng không tới một, rồi lấy <span class="mono">topk</span>. Một phép, một lượt, không có vòng thứ hai. Chỗ hỏng nằm ở tính chất toán học của chữ “gần”: <strong>quan hệ gần nhau không bắc cầu.</strong> Điều 7 gần câu hỏi, Điều 34 gần Điều 7, nhưng không suy ra Điều 34 gần câu hỏi.</p>
+  <p class="col">Nhân ma trận để lấy cosine giữa câu hỏi và mọi đoạn, đổi thang từ khoảng âm một tới một về khoảng không tới một, rồi lấy <span class="mono">topk</span>. Một phép, một lượt, không có vòng thứ hai. Chỗ hỏng nằm ở tính chất toán học của chữ “gần”: <strong>quan hệ gần nhau không multi-hop.</strong> Điều 7 gần câu hỏi, Điều 34 gần Điều 7, nhưng không suy ra Điều 34 gần câu hỏi.</p>
 
   <p class="col">Với ví dụ ở mục 01 thì còn ngược hẳn. Điều 34 nói về số tiền, câu hỏi không có chữ nào về tiền, nên hai vector xa nhau. Tăng <span class="mono">topk</span> lên 50 cũng không cứu được, vì thứ hạng của Điều 34 thấp không phải do nhiễu, mà do đúng bản chất phép đo.</p>
 
-  <p class="col">Cạnh đồ thị thì ghép được. Có cạnh A sang B và cạnh B sang C thì đi được A sang C, và đi bao nhiêu bước cũng được. Đồ thị tri thức thực chất là một bảng ba cột chủ thể, quan hệ, đối tượng; còn bắc cầu hai bước là phép nối bảng đó với chính nó. Cơ sở dữ liệu quan hệ làm việc này từ năm 1970. RAG không làm được chỉ vì nó không có bảng nào để nối.</p>
+  <p class="col">Cạnh đồ thị thì ghép được. Có cạnh A sang B và cạnh B sang C thì đi được A sang C, và đi bao nhiêu bước cũng được. Knowledge graph thực chất là một bảng ba cột chủ thể, quan hệ, đối tượng; còn multi-hop hai bước là phép nối bảng đó với chính nó. Cơ sở dữ liệu quan hệ làm việc này từ năm 1970. RAG không làm được chỉ vì nó không có bảng nào để nối.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 320" role="img" aria-label="So sánh hai cách truy hồi. Bên trái là không gian vector: câu hỏi nằm giữa một vòng tròn nét đứt là vùng topk, Điều 7 và Điều 8 nằm trong vòng, còn Điều 34 nằm xa bên ngoài nên không được lấy về. Bên phải là đồ thị: từ câu hỏi đi qua cạnh NER tới hành vi, rồi qua cạnh biCamBoi tới Điều 34, rồi qua cạnh cheTai tới mức phạt 30 đến 50 triệu, tất cả chỉ mất ba cạnh">
+  <svg class="dg" viewBox="0 0 940 320" role="img" aria-label="So sánh hai cách retrieval. Bên trái là vector space: câu hỏi nằm giữa một vòng tròn nét đứt là vùng topk, Điều 7 và Điều 8 nằm trong vòng, còn Điều 34 nằm xa bên ngoài nên không được lấy về. Bên phải là đồ thị: từ câu hỏi đi qua cạnh NER tới hành vi, rồi qua cạnh biCamBoi tới Điều 34, rồi qua cạnh cheTai tới mức phạt 30 đến 50 triệu, tất cả chỉ mất ba cạnh">
     <defs>
       <marker id="d5a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
     </defs>
 
     <!-- trái : không gian vector -->
     <rect class="panel" x="16" y="44" width="440" height="250" rx="3"/>
-    <text class="t-head" x="30" y="32">Không gian vector</text>
+    <text class="t-head" x="30" y="32">Vector space</text>
     <text class="t-tiny" x="30" y="64">MỘT PHÉP ĐO KHOẢNG CÁCH, MỘT LƯỢT</text>
 
     <circle class="panel" cx="150" cy="170" r="64"/>
@@ -311,7 +311,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     </details>
 
     <details>
-      <summary>Độ tương đồng cosine <span class="en">cosine similarity</span></summary>
+      <summary>Cosine similarity <span class="en">độ tương đồng cosine</span></summary>
       <div class="gbody">
         <p>Đo <strong>góc</strong> giữa hai vector, không đo độ dài. Cùng hướng thì bằng một, vuông góc thì bằng không, ngược hướng thì bằng âm một. Đây là toàn bộ phép tính mà RAG dùng để chọn đoạn văn.</p>
         <p class="like">Giống đo xem hai người có đang nhìn về cùng một hướng không, chứ không đo họ đứng cách nhau bao xa.</p>
@@ -320,7 +320,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     </details>
 
     <details>
-      <summary>Bắc cầu nhiều bước <span class="en">multi-hop</span></summary>
+      <summary>Multi-hop <span class="en">bắc cầu nhiều bước</span></summary>
       <div class="gbody">
         <p>Câu hỏi mà lời giải phải đi qua ít nhất hai quan hệ nối tiếp: kết quả bước một là đầu vào bước hai. Mỗi lần đi qua một quan hệ gọi là một bước, tiếng Anh là một hop.</p>
         <p class="like">Giống hỏi “sếp của sếp tôi là ai”. Không ô nào trong sổ nhân sự ghi sẵn câu trả lời, phải tra hai lần liên tiếp.</p>
@@ -329,9 +329,9 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     </details>
 
     <details>
-      <summary>Tam bộ SPO <span class="en">subject–predicate–object triple</span></summary>
+      <summary>SPO triple <span class="en">tam bộ chủ–vị–tân</span></summary>
       <div class="gbody">
-        <p>Đơn vị nhỏ nhất của đồ thị tri thức: chủ thể, quan hệ, đối tượng. Ba mảnh này ghép thành một câu sự thật mà máy đọc được.</p>
+        <p>Đơn vị nhỏ nhất của knowledge graph: chủ thể, quan hệ, đối tượng. Ba mảnh này ghép thành một câu sự thật mà máy đọc được.</p>
         <p class="like">Giống một dòng trong sổ hộ khẩu: “Nam — là con của — Bình”. Ba ô, không thừa không thiếu.</p>
         <p class="where">kag/builder/component/mapping/spo_mapping.py</p>
       </div>
@@ -347,7 +347,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     </details>
 
     <details>
-      <summary>Trường hiệu lực <span class="en">in-force flag</span></summary>
+      <summary>In-force flag <span class="en">trường hiệu lực</span></summary>
       <div class="gbody">
         <p>Không phải khái niệm của KAG, mà là ràng buộc của ngành luật. Một văn bản có vòng đời: còn hiệu lực, hết hiệu lực, hết hiệu lực một phần. Trạng thái này <strong>không nằm trong chữ của điều luật</strong>, nên vector không bao giờ tìm ra nó. Nó phải là một property có kiểu trong schema, và phải có người tra rồi ghi vào.</p>
         <p class="like">Giống hạn dùng in trên vỏ hộp thuốc. Đọc thành phần thuốc cả ngày cũng không biết hộp còn dùng được không.</p>
@@ -365,7 +365,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     </details>
 
     <details>
-      <summary>Chuẩn hóa tên <span class="en">entity standardization</span></summary>
+      <summary>Entity standardization <span class="en">chuẩn hóa tên</span></summary>
       <div class="gbody">
         <p>Quy mọi cách viết khác nhau của cùng một thứ về một tên chính thức duy nhất. Đây chính là bước GraphRAG thiếu.</p>
         <p class="like">Giống thủ thư dồn ba tấm thẻ “Luật ANM”, “Luật An ninh mạng”, “Luật số 116/2025/QH15” về một tấm. Nhưng phải cẩn thận: “Luật An ninh mạng” năm 2018 và năm 2025 là hai tấm thẻ khác nhau.</p>
@@ -374,7 +374,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     </details>
 
     <details>
-      <summary>Chỉ mục hai chiều <span class="en">knowledge–chunk mutual index</span></summary>
+      <summary>Knowledge–chunk mutual index <span class="en">chỉ mục hai chiều</span></summary>
       <div class="gbody">
         <p>Mỗi thực thể trong đồ thị giữ một cạnh trỏ về đúng đoạn văn đã sinh ra nó, và đoạn văn cũng là một node trong chính đồ thị đó. Hai kho không tách rời.</p>
         <p class="like">Giống mục lục sách có ghi số trang, mà lật tới trang đó lại thấy chú thích “xem thêm mục X”. Đi được cả hai chiều.</p>
@@ -385,7 +385,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
     <details>
       <summary>Logical form <span class="en">dạng logic</span></summary>
       <div class="gbody">
-        <p>Một ngôn ngữ nhỏ để viết kế hoạch trả lời trước khi đi tìm, gồm các lệnh <span class="mono">Retrieval</span>, <span class="mono">Math</span>, <span class="mono">Deduce</span>, <span class="mono">output</span>.</p>
+        <p>Một ngôn ngữ nhỏ để viết plan trả lời trước khi đi tìm, gồm các lệnh <span class="mono">Retrieval</span>, <span class="mono">Math</span>, <span class="mono">Deduce</span>, <span class="mono">output</span>.</p>
         <p class="like">Giống công thức nấu ăn ghi rõ từng bước, thay vì chỉ bảo “làm món này đi”.</p>
         <p class="where">kag/solver/prompt/logic_form_plan.py</p>
       </div>
@@ -404,7 +404,7 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
 
 <!-- ============ 04 ============ -->
 <section id="s4">
-  <div class="sec-head"><span class="sec-num">04</span><h2>Dựng đồ thị tri thức</h2></div>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Dựng knowledge graph</h2></div>
   <p class="sec-sub">Đây là phần cốt lõi. Bấm qua từng bước để xem một điều luật thật biến thành node và cạnh như thế nào. Chấm đỏ đánh dấu bước có gọi LLM. Mọi khối mã đều ghi rõ nguồn gốc theo bốn nhãn: <em>từ repo</em>, <em>từ bộ dữ liệu</em>, <em>viết cho dự án này</em>, <em>minh họa</em>.</p>
 
   <h3>Bước 0 — Schema có trước, dữ liệu có sau</h3>
@@ -517,13 +517,13 @@ LoaiVanBan(Loại văn bản): ConceptType
     <p style="margin-top:10px"><span class="mono">conHieuLuc</span> tồn tại như một property riêng, tách khỏi <span class="mono">noiDung</span>. Đây là chỗ mà không hệ RAG thuần nào chạm tới được, vì thông tin đó không nằm trong chữ của điều luật mà nằm trong hồ sơ về điều luật.</p>
   </div>
 
-  <div class="steps" role="tablist" aria-label="Các bước dựng chỉ mục">
+  <div class="steps" role="tablist" aria-label="Các bước dựng index">
     <button role="tab" id="k0" aria-controls="b0" aria-selected="true">01 · scanner + reader</button>
     <button role="tab" id="k1" aria-controls="b1" aria-selected="false">02 · splitter</button>
     <button role="tab" id="k2" aria-controls="b2" aria-selected="false"><span class="dot"></span>03 · NER</button>
-    <button role="tab" id="k3" aria-controls="b3" aria-selected="false"><span class="dot"></span>04 · chuẩn hóa</button>
-    <button role="tab" id="k4" aria-controls="b4" aria-selected="false"><span class="dot"></span>05 · trích quan hệ</button>
-    <button role="tab" id="k5" aria-controls="b5" aria-selected="false">06 · nối chunk</button>
+    <button role="tab" id="k3" aria-controls="b3" aria-selected="false"><span class="dot"></span>04 · std</button>
+    <button role="tab" id="k4" aria-controls="b4" aria-selected="false"><span class="dot"></span>05 · triple</button>
+    <button role="tab" id="k5" aria-controls="b5" aria-selected="false">06 · assemble</button>
     <button role="tab" id="k6" aria-controls="b6" aria-selected="false">07 · vectorizer</button>
     <button role="tab" id="k7" aria-controls="b7" aria-selected="false">08 · writer</button>
   </div>
@@ -568,7 +568,7 @@ quan, tổ chức, cá nhân có liên quan.
   <div class="step-body" id="b1" role="tabpanel" aria-labelledby="k1" hidden>
     <h3>Cắt theo điều, không cắt theo số ký tự <span class="llm-tag no-llm">không gọi LLM</span></h3>
     <p>Ví dụ y khoa gốc trong repo dùng <span class="mono">length_splitter</span> với <span class="mono">split_length: 100000</span>, tức là mỗi bài mô tả bệnh giữ nguyên một chunk. Với văn bản luật, cách đó hỏng ngay: Luật 116/2025/QH15 dài 87.483 ký tự và có 45 điều, còn Nghị định 330/2026/NĐ-CP dài 205.476 ký tự và có 81 điều.</p>
-    <p>Repo có sẵn <span class="mono">pattern_splitter</span>, nhận vào một biểu thức chính quy và bản đồ nhóm. Đây là bộ cắt đúng cho văn bản có cấu trúc điều khoản.</p>
+    <p>Repo có sẵn <span class="mono">pattern_splitter</span>, nhận vào một regex và bản đồ nhóm. Đây là bộ cắt đúng cho văn bản có cấu trúc điều khoản.</p>
 <pre><code>splitter:
   type: pattern_splitter
   pattern_dict:
@@ -586,7 +586,7 @@ quan, tổ chức, cá nhân có liên quan.
   </div>
 
   <div class="step-body" id="b2" role="tabpanel" aria-labelledby="k2" hidden>
-    <h3>Gọi LLM lần một — tìm thực thể <span class="llm-tag">gọi LLM</span></h3>
+    <h3>Gọi LLM lần một — NER <span class="llm-tag">gọi LLM</span></h3>
     <p>Prompt đưa cho LLM <strong>ba thứ</strong>: danh sách kiểu lấy thẳng từ schema, một ví dụ mẫu, và đoạn văn cần xử lý. Việc nhét schema vào prompt chính là chỗ chữ “schema-constraint” trở thành hiện thực.</p>
     <h4>Prompt mặc định trong repo, dịch phần chỉ dẫn</h4>
 <pre><code>{
@@ -650,7 +650,7 @@ output: [
   </div>
 
   <div class="step-body" id="b3" role="tabpanel" aria-labelledby="k3" hidden>
-    <h3>Gọi LLM lần hai — quy về tên chính thức <span class="llm-tag">gọi LLM</span></h3>
+    <h3>Gọi LLM lần hai — std <span class="llm-tag">gọi LLM</span></h3>
     <p>Đây là bước GraphRAG không có, và là lý do đồ thị KAG sạch hơn. LLM nhận lại danh sách thực thể vừa tìm được cùng đoạn văn gốc, rồi trả về <span class="mono">official_name</span> cho từng cái. Với văn bản luật, đây là bước quan trọng nhất trong cả pipeline, vì một văn bản có ít nhất bốn cách gọi.</p>
     <h4>Chỉ dẫn nguyên văn trong prompt, đã dịch</h4>
 <pre><code>"Trường input chứa ngữ cảnh do người dùng cung cấp. Trường
@@ -682,8 +682,8 @@ output: [
   </div>
 
   <div class="step-body" id="b4" role="tabpanel" aria-labelledby="k4" hidden>
-    <h3>Gọi LLM lần ba — trích quan hệ <span class="llm-tag">gọi LLM</span></h3>
-    <p>Prompt đưa vào cả đoạn văn lẫn danh sách thực thể đã tìm được, và ra một điều kiện đáng chú ý: <strong>mỗi tam bộ phải chứa ít nhất một thực thể trong danh sách, tốt nhất là hai.</strong> Đây là dây cương giữ cho OpenIE không trôi tự do.</p>
+    <h3>Gọi LLM lần ba — trích triple <span class="llm-tag">gọi LLM</span></h3>
+    <p>Prompt đưa vào cả đoạn văn lẫn danh sách thực thể đã tìm được, và ra một điều kiện đáng chú ý: <strong>mỗi triple phải chứa ít nhất một thực thể trong danh sách, tốt nhất là hai.</strong> Đây là dây cương giữ cho OpenIE không trôi tự do.</p>
     <h4>Kết quả trên điều 34</h4>
 <pre><code>"output": [
  ["Sử dụng AI, Deepfake giả mạo dữ liệu sinh trắc học",
@@ -696,14 +696,14 @@ output: [
 ]</code></pre>
     <span class="src">minh họa · đây là kết quả điển hình, không phải log chạy thật</span>
 
-    <p>Với schema-free, ba lần gọi LLM này chạy trong hai đợt. NER phải xong trước vì hai bước kia cần danh sách thực thể, còn chuẩn hóa và trích tam bộ chạy song song:</p>
+    <p>Với schema-free, ba lần gọi LLM này chạy trong hai đợt. NER phải xong trước vì hai bước kia cần danh sách thực thể, còn std và triple chạy song song:</p>
 <pre><code>triples, std_entities = await asyncio.gather(
     self.atriples_extraction(passage, filtered_entities),
     self.anamed_entity_standardization(passage, filtered_entities),
 )</code></pre>
     <span class="src">từ repo · kag/builder/component/extractor/schema_free_extractor.py · _ainvoke</span>
 
-    <p>Với schema-constraint, bản nên dùng cho dữ liệu luật, có <strong>bốn</strong> lệnh gọi chia thành hai đợt, mỗi đợt hai lệnh chạy song song. Đợt đầu thêm bước trích sự kiện:</p>
+    <p>Với schema-constraint, bản nên dùng cho dữ liệu luật, có <strong>bốn</strong> lệnh gọi chia thành hai đợt, mỗi đợt hai lệnh chạy song song. Đợt đầu thêm bước event:</p>
 <pre><code>entities, events = await asyncio.gather(
     self.anamed_entity_recognition(passage), self.aevent_extraction(passage)
 )
@@ -718,7 +718,7 @@ relations, std_entities = await asyncio.gather(
 
   <div class="step-body" id="b5" role="tabpanel" aria-labelledby="k5" hidden>
     <h3>Nối mọi thực thể ngược về đoạn văn <span class="llm-tag no-llm">không gọi LLM</span></h3>
-    <p>Toàn bộ ý tưởng chỉ mục hai chiều nằm gọn trong một hàm mười dòng. Đoạn văn được thêm vào đồ thị như một node bình thường, rồi mỗi thực thể vừa trích ra được nối về nó bằng cạnh tên <span class="mono">source</span>.</p>
+    <p>Toàn bộ ý tưởng knowledge–chunk mutual index nằm gọn trong một hàm mười dòng. Đoạn văn được thêm vào đồ thị như một node bình thường, rồi mỗi thực thể vừa trích ra được nối về nó bằng cạnh tên <span class="mono">source</span>.</p>
 <pre><code>@staticmethod
 def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
     for node in sub_graph.nodes:
@@ -745,9 +745,9 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
   </div>
 
   <div class="step-body" id="b6" role="tabpanel" aria-labelledby="k6" hidden>
-    <h3>Nhúng vector vào chính node <span class="llm-tag no-llm">gọi model embedding</span></h3>
+    <h3>Embed vector vào chính node <span class="llm-tag no-llm">gọi model embedding</span></h3>
     <p>Điều bất ngờ với người quen RAG: <strong>KAG không có kho vector riêng.</strong> Vector được cất thành một property nữa trên chính node của đồ thị.</p>
-    <p>Quy tắc chọn trường để nhúng có hai vế. Trường <span class="mono">name</span> luôn được nhúng bất kể khai báo gì. Ngoài ra, mọi property nào có <span class="mono">index</span> khai là kiểu vector trong file schema cũng được nhúng.</p>
+    <p>Quy tắc chọn trường để embed có hai vế. Trường <span class="mono">name</span> luôn được embed bất kể khai báo gì. Ngoài ra, mọi property nào có <span class="mono">index</span> khai là kiểu vector trong file schema cũng được embed.</p>
 <pre><code>field_name = get_vector_field_name(property_key)</code></pre>
     <span class="src">từ repo · kag/builder/component/vectorizer/batch_vectorizer.py</span>
     <p>Tên trường mới sinh ra theo mẫu <span class="mono">&lt;tên gốc&gt;_vector</span>. Node <span class="mono">DieuKhoan</span> tên <span class="mono">Điều 34</span> sau bước này có thêm <span class="mono">name_vector</span>, và vì <span class="mono">noiDung</span> được khai <span class="mono">index: TextAndVector</span> nên có thêm <span class="mono">noiDung_vector</span>.</p>
@@ -760,10 +760,10 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
   <div class="step-body" id="b7" role="tabpanel" aria-labelledby="k7" hidden>
     <h3>Ghi một lần, cả đồ thị lẫn vector <span class="llm-tag no-llm">không gọi LLM</span></h3>
     <p><span class="mono">kg_writer</span> gọi <span class="mono">GraphClient.write_graph()</span> đẩy nguyên subgraph qua <span class="mono">knext</span> tới OpenSPG engine. Trong subgraph đó có đủ: node thực thể có kiểu, node chunk, cạnh quan hệ theo schema, cạnh <span class="mono">source</span>, và các property vector.</p>
-    <p>Trước đó <span class="mono">kag_post_processor</span> còn làm một lượt dọn: bỏ node và cạnh không hợp lệ, rồi thử nối những thực thể có tên gần giống nhau về một mối bằng độ tương đồng vector. Đây là lưới an toàn thứ hai sau bước chuẩn hóa bằng LLM.</p>
+    <p>Trước đó <span class="mono">kag_post_processor</span> còn làm một lượt dọn: bỏ node và cạnh không hợp lệ, rồi thử nối những thực thể có tên gần giống nhau về một mối bằng vector similarity. Đây là lưới an toàn thứ hai sau bước std bằng LLM.</p>
     <div class="callout">
       <span class="k">Cẩn thận với lưới an toàn này khi làm luật</span>
-      <p>Gộp theo độ tương đồng vector là đúng cho “thuốc an thần” với “thuốc trấn tĩnh”. Nó là sai cho “Luật An ninh mạng 2018” với “Luật An ninh mạng 2025”, hai chuỗi có vector rất gần nhau nhưng là hai văn bản đối lập nhau về hiệu lực. Nếu bật bước gộp này, nên loại kiểu <span class="mono">VanBan</span> ra khỏi phạm vi gộp.</p>
+      <p>Gộp theo vector similarity là đúng cho “thuốc an thần” với “thuốc trấn tĩnh”. Nó là sai cho “Luật An ninh mạng 2018” với “Luật An ninh mạng 2025”, hai chuỗi có vector rất gần nhau nhưng là hai văn bản đối lập nhau về hiệu lực. Nếu bật bước gộp này, nên loại kiểu <span class="mono">VanBan</span> ra khỏi phạm vi gộp.</p>
     </div>
     <div class="callout">
       <span class="k">Chạy lại không tốn tiền lại</span>
@@ -831,13 +831,13 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
     <text class="t-lbl" x="496" y="266">Chunk · Điều 7, Luật 116/2025/QH15</text>
     <text class="t-tiny" x="496" y="282">“…sử dụng trí tuệ nhân tạo… để giả mạo… giọng nói…”</text>
 
-    <text class="t-tiny" x="26" y="316">CẠNH SOURCE · CHỈ MỤC HAI CHIỀU · HAI VĂN BẢN, MỘT ĐỒ THỊ</text>
+    <text class="t-tiny" x="26" y="316">CẠNH SOURCE · MUTUAL INDEX · HAI VĂN BẢN, MỘT ĐỒ THỊ</text>
   </svg>
   <figcaption><strong>Một điều khoản, một subgraph.</strong> Cạnh liền đỏ là quan hệ có tên lấy thẳng từ schema. Cạnh đứt xanh là <span class="mono">source</span>, mọi node đều có một cạnh như vậy trỏ xuống điều khoản gốc. Node <span class="mono">VanBan</span> mang property <span class="mono">conHieuLuc</span>, nên câu hỏi có thể lọc theo hiệu lực ngay trên đồ thị. Cạnh <span class="mono">canCuTai</span> là chỗ nghị định xử phạt nối ngược về điều cấm trong luật gốc, tức là chỗ đồ thị bắc qua ranh giới hai văn bản.</figcaption>
   </figure>
 
   <h3>Đường thứ hai: dữ liệu đã có cấu trúc</h3>
-  <p class="col">Không phải nguồn nào cũng cần LLM. Nếu dữ liệu vốn đã là bảng tam bộ thì nó đi thẳng vào đồ thị qua <span class="mono">spo_mapping</span>, <strong>không tốn một lần gọi LLM nào</strong>. Bộ dữ liệu luật này có sẵn một mỏ như vậy: thư mục <span class="mono">data/metadata/</span>, nơi mỗi văn bản có một file JSON đã ghi rõ quan hệ với các văn bản khác.</p>
+  <p class="col">Không phải nguồn nào cũng cần LLM. Nếu dữ liệu vốn đã là bảng triple thì nó đi thẳng vào đồ thị qua <span class="mono">spo_mapping</span>, <strong>không tốn một lần gọi LLM nào</strong>. Bộ dữ liệu luật này có sẵn một mỏ như vậy: thư mục <span class="mono">data/metadata/</span>, nơi mỗi văn bản có một file JSON đã ghi rõ quan hệ với các văn bản khác.</p>
 <pre><code>"doc_number": "116/2025/QH15",
 "in_force": true,
 "status_basis": "Điều 44 khoản 1: Luật có hiệu lực thi hành
@@ -848,7 +848,7 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
                   "332/2026/NĐ-CP", "333/2026/NĐ-CP",
                   "341/2026/NĐ-CP"]</code></pre>
   <span class="src">từ bộ dữ liệu · data/metadata/116-2025-QH15.json, rút gọn</span>
-  <p class="col">Đổi thẳng thành tam bộ, không qua LLM:</p>
+  <p class="col">Đổi thẳng thành triple, không qua LLM:</p>
 <pre><code>S,P,O
 116/2025/QH15,thayThe,24/2018/QH14
 116/2025/QH15,thayThe,86/2015/QH13
@@ -863,7 +863,7 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
   </div>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 250" role="img" aria-label="Luồng dựng chỉ mục gồm tám bước từ scanner tới writer, trong đó bốn lệnh gọi LLM chia hai đợt trong extractor, và một nhánh riêng cho metadata đã có cấu trúc đi thẳng vào writer">
+  <svg class="dg" viewBox="0 0 940 250" role="img" aria-label="Luồng dựng index gồm tám bước từ scanner tới writer, trong đó bốn lệnh gọi LLM chia hai đợt trong extractor, và một nhánh riêng cho metadata đã có cấu trúc đi thẳng vào writer">
     <defs>
       <marker id="d2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="d2r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -883,15 +883,15 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
     <rect class="panel" x="406" y="22" width="214" height="120" rx="3"/>
     <text class="t-tiny" x="416" y="38" style="letter-spacing:.02em">EXTRACTOR · SCHEMA-CONSTRAINT</text>
     <rect class="bx-a" x="418" y="46" width="90" height="26" rx="2"/><text class="t-tiny" x="463" y="63" text-anchor="middle">1 · NER</text>
-    <rect class="bx-a" x="518" y="46" width="90" height="26" rx="2"/><text class="t-tiny" x="563" y="63" text-anchor="middle">2 · sự kiện</text>
+    <rect class="bx-a" x="518" y="46" width="90" height="26" rx="2"/><text class="t-tiny" x="563" y="63" text-anchor="middle">2 · event</text>
     <line class="ln-a" x1="463" y1="72" x2="463" y2="84" marker-end="url(#d2r)"/>
     <line class="ln-a" x1="563" y1="72" x2="563" y2="84" marker-end="url(#d2r)"/>
-    <rect class="bx-a" x="418" y="86" width="90" height="26" rx="2"/><text class="t-tiny" x="463" y="103" text-anchor="middle">3 · chuẩn hóa</text>
-    <rect class="bx-a" x="518" y="86" width="90" height="26" rx="2"/><text class="t-tiny" x="563" y="103" text-anchor="middle">4 · quan hệ</text>
+    <rect class="bx-a" x="418" y="86" width="90" height="26" rx="2"/><text class="t-tiny" x="463" y="103" text-anchor="middle">3 · std</text>
+    <rect class="bx-a" x="518" y="86" width="90" height="26" rx="2"/><text class="t-tiny" x="563" y="103" text-anchor="middle">4 · triple</text>
     <text class="t-tiny" x="513" y="130" text-anchor="middle">mỗi hàng là một đợt song song</text>
 
     <line class="ln" x1="623" y1="82" x2="648" y2="82" marker-end="url(#d2a)"/>
-    <rect class="bx-g" x="652" y="58" width="104" height="46" rx="2"/><text class="t-lbl" x="704" y="78" text-anchor="middle">nối chunk</text><text class="t-tiny" x="704" y="94" text-anchor="middle">cạnh source</text>
+    <rect class="bx-g" x="652" y="58" width="104" height="46" rx="2"/><text class="t-lbl" x="704" y="78" text-anchor="middle">assemble</text><text class="t-tiny" x="704" y="94" text-anchor="middle">cạnh source</text>
     <line class="ln" x1="756" y1="82" x2="782" y2="82" marker-end="url(#d2a)"/>
     <rect class="bx-g" x="786" y="58" width="104" height="46" rx="2"/><text class="t-lbl" x="838" y="78" text-anchor="middle">vectorizer</text><text class="t-tiny" x="838" y="94" text-anchor="middle">noiDung_vector</text>
 
@@ -914,22 +914,22 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
 
 <!-- ============ 05 ============ -->
 <section id="s5">
-  <div class="sec-head"><span class="sec-num">05</span><h2>Chỉ mục hai chiều dùng để làm gì</h2></div>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Knowledge–chunk mutual index dùng để làm gì</h2></div>
   <p class="sec-sub">Cạnh <span class="mono">source</span> không chỉ để trích dẫn cho đẹp. Nó là đường cứu hộ khi đồ thị không đủ.</p>
 
-  <p class="col">Đồ thị trích bằng LLM không bao giờ đầy đủ. Sẽ có điều khoản mà LLM quên trích quan hệ <span class="mono">cheTai</span>, dù điều đó có nói rõ mức phạt. Sẽ có hành vi mô tả lòng vòng qua ba khoản mà không câu nào đứng riêng thành một tam bộ sạch. Nếu chỉ có đồ thị thì những câu hỏi đó chết. KAG xử lý bằng ba lớp truy hồi chồng lên nhau:</p>
+  <p class="col">Đồ thị trích bằng LLM không bao giờ đầy đủ. Sẽ có điều khoản mà LLM quên trích quan hệ <span class="mono">cheTai</span>, dù điều đó có nói rõ mức phạt. Sẽ có hành vi mô tả lòng vòng qua ba khoản mà không câu nào đứng riêng thành một triple sạch. Nếu chỉ có đồ thị thì những câu hỏi đó chết. KAG xử lý bằng ba lớp retrieval chồng lên nhau:</p>
 
   <div class="grid3">
     <div class="gcard">
-      <h4 style="color:var(--prussian)">KG-CS · chính xác</h4>
+      <h4 style="color:var(--prussian)">KG-CS · exact</h4>
       <p>Đi đúng một bước trên cạnh có tên đã khai trong schema. Nhanh, chắc, nhưng chỉ chạy khi quan hệ thật sự tồn tại trong đồ thị.</p>
     </div>
     <div class="gcard">
-      <h4 style="color:var(--ochre)">KG-FR · mờ, có PPR</h4>
-      <p>Khi cạnh thiếu, nó lấy các thực thể tìm được làm điểm xuất phát rồi lan theo <span class="mono">source</span> sang các điều khoản liên quan. Đây là chỗ chỉ mục hai chiều cứu bàn thua.</p>
+      <h4 style="color:var(--ochre)">KG-FR · fuzzy, có PPR</h4>
+      <p>Khi cạnh thiếu, nó lấy các thực thể tìm được làm điểm xuất phát rồi lan theo <span class="mono">source</span> sang các điều khoản liên quan. Đây là chỗ knowledge–chunk mutual index cứu bàn thua.</p>
     </div>
     <div class="gcard">
-      <h4 style="color:var(--ink-2)">RC · vector thuần</h4>
+      <h4 style="color:var(--ink-2)">RC · vector</h4>
       <p>Đúng bằng RAG thường: tìm điều khoản giống câu hỏi nhất theo vector. Giữ lại làm lớp đáy phòng khi hai lớp trên đều trượt.</p>
     </div>
   </div>
@@ -1012,26 +1012,26 @@ ppr_scores = ppr_scores + mask</code></pre>
 
 <!-- ============ 06 ============ -->
 <section id="s5b">
-  <div class="sec-head"><span class="sec-num">06</span><h2>Sáu bộ quản lý chỉ mục</h2></div>
-  <p class="sec-sub">Hai mục vừa rồi tả một loại chỉ mục. Bản 0.8 của repo đăng ký sáu bộ quản lý chỉ mục, chọn theo hình dạng tài liệu và theo túi tiền. Loại đồ thị cộng chunk là loại đắt nhất trong số đó.</p>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Sáu index manager</h2></div>
+  <p class="sec-sub">Hai mục vừa rồi tả một loại index. Bản 0.8 của repo đăng ký sáu index manager, chọn theo hình dạng tài liệu và theo túi tiền. Loại đồ thị cộng chunk là loại đắt nhất trong số đó.</p>
 
   <div class="tw">
   <table>
     <thead><tr><th>Loại</th><th>Nó dựng gì</th><th>Hợp với dữ liệu luật ở chỗ nào</th><th style="text-align:right">Token</th><th style="text-align:right">Thời gian</th></tr></thead>
     <tbody>
-      <tr><td class="mono">chunk_index</td><td>Cắt đoạn rồi nhúng vector, không hơn</td><td>Tra cứu tự do, đúng bằng RAG thường</td><td style="text-align:right;font-variant-numeric:tabular-nums">0</td><td style="text-align:right;font-variant-numeric:tabular-nums">1,5 s</td></tr>
+      <tr><td class="mono">chunk_index</td><td>Cắt đoạn rồi embed vector, không hơn</td><td>Tra cứu tự do, đúng bằng RAG thường</td><td style="text-align:right;font-variant-numeric:tabular-nums">0</td><td style="text-align:right;font-variant-numeric:tabular-nums">1,5 s</td></tr>
       <tr><td class="mono">table_index</td><td>Tách bảng, giữ đoạn văn trước và sau nó</td><td>Phụ lục biểu mức phạt, danh mục hệ thống thông tin</td><td style="text-align:right;font-variant-numeric:tabular-nums">0</td><td style="text-align:right;font-variant-numeric:tabular-nums">1,5 s</td></tr>
       <tr><td class="mono">outline_index</td><td>Đọc cấp tiêu đề, dựng cây mục lục</td><td>Rất hợp: văn bản luật vốn đã có Chương, Mục, Điều, Khoản</td><td style="text-align:right;font-variant-numeric:tabular-nums">0</td><td style="text-align:right;font-variant-numeric:tabular-nums">9,4 s</td></tr>
       <tr><td class="mono">summary_index</td><td>LLM tóm tắt nhiều tầng</td><td>Nghị định dài, cần nhìn tổng quan chương trước rồi khoan sâu</td><td style="text-align:right;font-variant-numeric:tabular-nums">88.701</td><td style="text-align:right;font-variant-numeric:tabular-nums">85,2 s</td></tr>
       <tr><td class="mono">atomic_query_index</td><td>LLM sinh sẵn các câu hỏi con trả lời được</td><td>Kiểu hỏi đáp pháp luật, một câu một điều khoản</td><td style="text-align:right;font-variant-numeric:tabular-nums">121.535</td><td style="text-align:right;font-variant-numeric:tabular-nums">109,5 s</td></tr>
-      <tr><td class="mono">kag_hybrid_index</td><td>Đồ thị, KnowledgeUnit, AtomicQuery, cộng chunk</td><td>Bắc cầu hành vi → điều khoản → chế tài → hiệu lực</td><td style="text-align:right;font-variant-numeric:tabular-nums">4.634.332</td><td style="text-align:right;font-variant-numeric:tabular-nums">1.425 s</td></tr>
+      <tr><td class="mono">kag_hybrid_index</td><td>Đồ thị, KnowledgeUnit, AtomicQuery, cộng chunk</td><td>Multi-hop hành vi → điều khoản → chế tài → hiệu lực</td><td style="text-align:right;font-variant-numeric:tabular-nums">4.634.332</td><td style="text-align:right;font-variant-numeric:tabular-nums">1.425 s</td></tr>
     </tbody>
   </table>
   </div>
   <span class="src">từ repo · kag/indexer/kag_index_manager.py · số đo ghi trong mã, tài liệu 100 nghìn chữ, model trích 7B</span>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 300" role="img" aria-label="Biểu đồ cột ngang chi phí token của sáu bộ quản lý chỉ mục cho một tài liệu 100 nghìn chữ: ba bộ đầu tốn 0 token, summary_index 88.701, atomic_query_index 121.535, kag_hybrid_index 4.634.332">
+  <svg class="dg" viewBox="0 0 940 300" role="img" aria-label="Biểu đồ cột ngang chi phí token của sáu index manager cho một tài liệu 100 nghìn chữ: ba bộ đầu tốn 0 token, summary_index 88.701, atomic_query_index 121.535, kag_hybrid_index 4.634.332">
 
     <text class="t-tiny" x="24" y="24">TOKEN CHO MỘT TÀI LIỆU 100 NGHÌN CHỮ · THANG TUYẾN TÍNH, KHÔNG CẮT</text>
     <line class="ln" x1="210" y1="44" x2="210" y2="256"/>
@@ -1089,11 +1089,11 @@ ppr_scores = ppr_scores + mask</code></pre>
   <p class="col">Kết luận thực dụng rút ra từ bảng này: <strong>đừng build cả kho</strong>. Chọn một nhánh, thường là nhánh bạn thật sự bị hỏi, rồi build. Bốn nhánh của bộ dữ liệu gần như không có cạnh nào bắc qua nhau, nên gộp chung chỉ tốn tiền chứ không thêm đường đi.</p>
 
   <h3>Mọi loại đều có Chunk</h3>
-  <p class="col">Sáu loại khai báo sáu schema khác nhau, nhưng cả sáu đều có kiểu <span class="mono">Chunk</span>. Điều khoản là nền, các loại chỉ mục chỉ là những lối vào khác nhau cùng dẫn về nó.</p>
+  <p class="col">Sáu loại khai báo sáu schema khác nhau, nhưng cả sáu đều có kiểu <span class="mono">Chunk</span>. Điều khoản là nền, các loại index chỉ là những lối vào khác nhau cùng dẫn về nó.</p>
 
   <div class="tw">
   <table class="filemap">
-    <thead><tr><th>Bộ quản lý</th><th>Kiểu nó thêm vào schema</th></tr></thead>
+    <thead><tr><th>Index manager</th><th>Kiểu nó thêm vào schema</th></tr></thead>
     <tbody>
       <tr><td>chunk_index</td><td>Chunk</td></tr>
       <tr><td>outline_index</td><td>Chunk, Outline</td></tr>
@@ -1108,19 +1108,19 @@ ppr_scores = ppr_scores + mask</code></pre>
 
   <div class="callout">
     <span class="k">Điều dễ bị bỏ sót</span>
-    <p>Lệnh <span class="mono">knext schema commit</span> duyệt qua <strong>mọi</strong> bộ quản lý chỉ mục rồi gộp schema của chúng vào cái bạn đẩy lên server. Không có công tắc nào để tắt. Nghĩa là schema <span class="mono">Legal</span> bạn viết sẽ nằm chung với các kiểu Outline, Summary, Table, AtomicQuery và KnowledgeUnit, dù pipeline build của bạn không sinh dữ liệu cho chúng.</p>
+    <p>Lệnh <span class="mono">knext schema commit</span> duyệt qua <strong>mọi</strong> index manager rồi gộp schema của chúng vào cái bạn đẩy lên server. Không có công tắc nào để tắt. Nghĩa là schema <span class="mono">Legal</span> bạn viết sẽ nằm chung với các kiểu Outline, Summary, Table, AtomicQuery và KnowledgeUnit, dù pipeline build của bạn không sinh dữ liệu cho chúng.</p>
   </div>
 
-  <p class="col">Việc <em>chọn</em> loại chỉ mục nào thì lại không nằm trong file cấu hình của ví dụ. Nó do knowledge base quyết định qua trường <span class="mono">index_list</span>, và chỉ có đường server đọc trường đó. Ví dụ dựng chuỗi builder tường minh, như ví dụ y khoa của repo, thì đi vòng qua cơ chế này.</p>
+  <p class="col">Việc <em>chọn</em> loại index nào thì lại không nằm trong file cấu hình của ví dụ. Nó do knowledge base quyết định qua trường <span class="mono">index_list</span>, và chỉ có đường server đọc trường đó. Ví dụ dựng chuỗi builder tường minh, như ví dụ y khoa của repo, thì đi vòng qua cơ chế này.</p>
 </section>
 
 <!-- ============ 07 ============ -->
 <section id="s6">
-  <div class="sec-head"><span class="sec-num">07</span><h2>Luồng trả lời</h2></div>
-  <p class="sec-sub">Nửa còn lại của KAG. Điểm khác RAG nằm ở chỗ có một bước lập kế hoạch trước khi đi tìm.</p>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Solver</h2></div>
+  <p class="sec-sub">Nửa còn lại của KAG. Điểm khác RAG nằm ở chỗ có một bước planner trước khi đi tìm.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 340" role="img" aria-label="Luồng trả lời của KAG cho câu hỏi pháp luật: câu hỏi vào planner có gọi LLM, sinh ra kế hoạch nhiều task đi từ hành vi sang điều khoản rồi lọc theo hiệu lực, mỗi task chạy qua ba retriever KG-CS KG-FR và RC rồi gộp bằng merger, cuối cùng generator có gọi LLM viết câu trả lời kèm số điều và số văn bản">
+  <svg class="dg" viewBox="0 0 940 340" role="img" aria-label="Solver của KAG cho câu hỏi pháp luật: câu hỏi vào planner có gọi LLM, sinh ra plan nhiều task đi từ hành vi sang điều khoản rồi lọc theo hiệu lực, mỗi task chạy qua ba retriever KG-CS KG-FR và RC rồi gộp bằng merger, cuối cùng generator có gọi LLM viết câu trả lời kèm số điều và số văn bản">
     <defs>
       <marker id="d4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="d4r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -1139,17 +1139,17 @@ ppr_scores = ppr_scores + mask</code></pre>
     <text class="t-tiny" x="235" y="178" text-anchor="middle">sinh logical form</text>
 
     <rect class="panel" x="330" y="34" width="260" height="86" rx="3"/>
-    <text class="t-tiny" x="342" y="52">KẾ HOẠCH SINH RA</text>
+    <text class="t-tiny" x="342" y="52">PLAN SINH RA</text>
     <text class="t-tiny" x="342" y="72">Task1 · Retrieval(HanhVi → DieuKhoan)</text>
     <text class="t-tiny" x="342" y="90">Task2 · Retrieval(DieuKhoan → CheTai)</text>
     <text class="t-tiny" x="342" y="108">Task3 · lọc VanBan.conHieuLuc = true</text>
     <path class="ln-a" d="M 298 154 L 314 154 L 314 78 L 326 78" marker-end="url(#d4r)"/>
 
     <rect class="panel" x="330" y="140" width="260" height="164" rx="3"/>
-    <text class="t-tiny" x="342" y="158">EXECUTOR · BA LỚP TRUY HỒI</text>
-    <rect class="bx-g" x="342" y="168" width="236" height="34" rx="2"/><text class="t-tiny" x="352" y="189">KG-CS · một bước chính xác</text>
-    <rect class="bx-o" x="342" y="210" width="236" height="34" rx="2"/><text class="t-tiny" x="352" y="231">KG-FR · mờ, lan bằng PPR</text>
-    <rect class="bx" x="342" y="252" width="236" height="34" rx="2"/><text class="t-tiny" x="352" y="273">RC · vector thuần</text>
+    <text class="t-tiny" x="342" y="158">EXECUTOR · BA LỚP RETRIEVAL</text>
+    <rect class="bx-g" x="342" y="168" width="236" height="34" rx="2"/><text class="t-tiny" x="352" y="189">KG-CS · exact one-hop</text>
+    <rect class="bx-o" x="342" y="210" width="236" height="34" rx="2"/><text class="t-tiny" x="352" y="231">KG-FR · fuzzy + PPR</text>
+    <rect class="bx" x="342" y="252" width="236" height="34" rx="2"/><text class="t-tiny" x="352" y="273">RC · vector</text>
     <path class="ln" d="M 298 178 L 314 178 L 314 220 L 326 220" marker-end="url(#d4a)"/>
 
     <line class="ln" x1="590" y1="220" x2="620" y2="220" marker-end="url(#d4a)"/>
@@ -1167,18 +1167,18 @@ ppr_scores = ppr_scores + mask</code></pre>
     <text class="t-lbl" x="853" y="266" text-anchor="middle">câu trả lời</text>
     <text class="t-tiny" x="853" y="282" text-anchor="middle">kèm số điều, số văn bản</text>
 
-    <text class="t-tiny" x="24" y="326">Nếu finish_judger chấm chưa đạt, planner lập lại kế hoạch từ đầu (chế độ static)</text>
+    <text class="t-tiny" x="24" y="326">Nếu finish_judger chấm chưa đạt, planner lập lại plan từ đầu (chế độ static)</text>
   </svg>
-  <figcaption><strong>Kế hoạch có trước, truy hồi có sau.</strong> Đây là điểm rẽ so với RAG: RAG đi tìm ngay, KAG viết kế hoạch rồi mới đi. Chỉ hai ô đỏ tốn tiền gọi LLM cho mỗi Task, phần truy hồi ở giữa chỉ đọc kho.</figcaption>
+  <figcaption><strong>Plan có trước, retrieval có sau.</strong> Đây là điểm rẽ so với RAG: RAG đi tìm ngay, KAG viết plan rồi mới đi. Chỉ hai ô đỏ tốn tiền gọi LLM cho mỗi Task, phần retrieval ở giữa chỉ đọc kho.</figcaption>
   </figure>
 
   <div class="callout">
-    <span class="k">Vì sao phải lập kế hoạch trước</span>
-    <p>Nối tiếp lập luận ở mục 02. Một câu hỏi hai bước không giải được bằng một phép tìm láng giềng gần nhất. Nhưng tách nó ra thì mỗi bước lại giải được bằng đúng phép đó. Toàn bộ việc của planner là <strong>biến một bài toán không giải được thành một dãy bài toán giải được</strong>. Cái giá phải trả: mỗi lần tách tốn một lần gọi LLM, và nếu tách sai thì cả dãy sai theo, vì không bước nào ở phía sau có khả năng phát hiện ra.</p>
+    <span class="k">Vì sao phải planner trước</span>
+    <p>Nối tiếp lập luận ở mục 02. Một câu hỏi hai bước không giải được bằng một phép nearest neighbor. Nhưng tách nó ra thì mỗi bước lại giải được bằng đúng phép đó. Toàn bộ việc của planner là <strong>biến một bài toán không giải được thành một dãy bài toán giải được</strong>. Cái giá phải trả: mỗi lần tách tốn một lần gọi LLM, và nếu tách sai thì cả dãy sai theo, vì không bước nào ở phía sau có khả năng phát hiện ra.</p>
   </div>
 
-  <h3>Bốn toán tử planner được phép dùng</h3>
-  <p class="col">Đây là phần khai báo hàm nguyên văn trong prompt của planner. Mọi kế hoạch trên trang này đều phải viết bằng đúng bốn toán tử đó, không có toán tử thứ năm.</p>
+  <h3>Bốn operator planner được phép dùng</h3>
+  <p class="col">Đây là phần khai báo hàm nguyên văn trong prompt của planner. Mọi plan trên trang này đều phải viết bằng đúng bốn operator đó, không có operator thứ năm.</p>
 <pre><code>Retrieval(s=s_alias:entity_type[`entity_name`],
           p=p_alias:edge_type,
           o=o_alias:entity_type[`entity_name`],
@@ -1194,8 +1194,8 @@ Output(alias)</code></pre>
 
   <p class="col">Ba chữ <span class="mono">s.prop</span>, <span class="mono">p.prop</span>, <span class="mono">o.prop</span> trong dòng đầu là thứ làm cho ví dụ luật chạy được. Mô tả đi kèm nói rõ: giá trị ràng buộc có thể là văn bản, hằng số, hoặc tên biến của bước trước. Nhờ vậy <span class="mono">o.conHieuLuc=`true`</span> là cú pháp thật chứ không phải cú pháp bịa cho đẹp bài.</p>
 
-  <h3>Một kế hoạch dùng cả ba toán tử</h3>
-  <p class="col">Câu hỏi khó hơn câu ở mục 01: <em>“Cùng một hành vi phát tán tin giả, mức phạt theo văn bản còn hiệu lực có nặng hơn mức cũ không?”</em> Nó cần truy hồi bốn lần, một phép so sánh số, và một phán đoán.</p>
+  <h3>Một plan dùng cả ba operator</h3>
+  <p class="col">Câu hỏi khó hơn câu ở mục 01: <em>“Cùng một hành vi phát tán tin giả, mức phạt theo văn bản còn hiệu lực có nặng hơn mức cũ không?”</em> Nó cần retrieval bốn lần, một phép so sánh số, và một phán đoán.</p>
 <pre><code>Step1: Hành vi phát tán tin giả bị xử phạt tại điều khoản nào
        của văn bản còn hiệu lực?
 Action1: Retrieval(s=s1:HanhVi[`phát tán tin giả`],
@@ -1225,14 +1225,14 @@ Step7: Output(deduce6)</code></pre>
 
   <p class="col">Chú ý <span class="mono">Action3</span>: chủ thể của nó là <span class="mono">s1</span>, tức thực thể hành vi đã tìm ra ở bước đầu, không phải một chuỗi văn bản gõ lại. Đây chính là thứ RAG thường không có cách nào biểu đạt. Và <span class="mono">o3.conHieuLuc=`false`</span> cho thấy một điều ngược đời của dữ liệu luật: <strong>văn bản hết hiệu lực không phải rác cần xóa</strong>. Nó là dữ liệu cần để so sánh, chỉ là không được phép trả lời thay văn bản đang có hiệu lực.</p>
 
-  <h3>Hai kiểu lập kế hoạch</h3>
+  <h3>Hai kiểu planner</h3>
   <div class="tw">
   <table>
     <thead><tr><th></th><th>Static</th><th>Iterative</th></tr></thead>
     <tbody>
-      <tr><td><strong>Lập kế hoạch</strong></td><td>Một lần, ra hết mọi Task</td><td>Mỗi vòng ra đúng một Task kế tiếp</td></tr>
+      <tr><td><strong>Planner</strong></td><td>Một lần, ra hết mọi Task</td><td>Mỗi vòng ra đúng một Task kế tiếp</td></tr>
       <tr><td><strong>Chạy Task</strong></td><td>Cùng bậc thì chạy song song</td><td>Chạy xong mới nghĩ bước sau</td></tr>
-      <tr><td><strong>Khi chưa đạt</strong></td><td>Lập lại kế hoạch từ đầu</td><td>Lặp tiếp cho tới khi chọn <span class="mono">finish_executor</span></td></tr>
+      <tr><td><strong>Khi chưa đạt</strong></td><td>Lập lại plan từ đầu</td><td>Lặp tiếp cho tới khi chọn <span class="mono">finish_executor</span></td></tr>
       <tr><td><strong>Hợp với</strong></td><td>Tra cứu có hình dạng cố định: hành vi, điều khoản, chế tài</td><td>Truy vết dây chuyền: luật dẫn nghị định, nghị định dẫn thông tư</td></tr>
       <tr><td><strong>Chi phí</strong></td><td>Rẻ hơn, song song được</td><td>Đắt hơn, nhiều lượt gọi hơn</td></tr>
     </tbody>
@@ -1241,7 +1241,7 @@ Step7: Output(deduce6)</code></pre>
   <span class="src">từ repo</span>
 
   <h3>Còn một họ planner thứ ba</h3>
-  <p class="col">Thư mục planner của repo có năm file, không phải hai. Ngoài static và iterative còn có bản dành cho mô hình KAG-Thinker và bản dành cho MCP. README nói KAG gồm ba phần là kg-builder, kg-solver và kag-model, trong đó phần thứ ba là mô hình được huấn luyện riêng cho việc lập kế hoạch và suy luận, chưa mở mã đầy đủ.</p>
+  <p class="col">Thư mục planner của repo có năm file, không phải hai. Ngoài static và iterative còn có bản dành cho mô hình KAG-Thinker và bản dành cho MCP. README nói KAG gồm ba phần là kg-builder, kg-solver và kag-model, trong đó phần thứ ba là mô hình được huấn luyện riêng cho planning và reasoning, chưa mở mã đầy đủ.</p>
   <p class="note">Hai mục trên trang này chỉ đi qua kg-builder và kg-solver. Đó là hai phần bạn chạy được ngay bằng mã trong repo.</p>
 </section>
 
@@ -1253,7 +1253,7 @@ Step7: Output(deduce6)</code></pre>
     <div class="gcard" style="border-left:2px solid var(--prussian)">
       <h4 style="color:var(--prussian)">Nên dùng KAG cho dữ liệu luật</h4>
       <ul>
-        <li>Câu hỏi bắc cầu hành vi → điều khoản → chế tài → hiệu lực</li>
+        <li>Câu hỏi multi-hop hành vi → điều khoản → chế tài → hiệu lực</li>
         <li>Bắt buộc trả lời kèm số điều và số văn bản, không được nói chung chung</li>
         <li>Đã có sẵn metadata quan hệ giữa các văn bản, đẩy vào đồ thị không tốn token</li>
         <li>Cần biết văn bản nào thay thế văn bản nào, và từ ngày nào</li>
@@ -1354,7 +1354,7 @@ Step7: Output(deduce6)</code></pre>
 
   <div class="callout">
     <span class="k">Thứ tự chạy có ý nghĩa</span>
-    <p>Chạy chuỗi metadata trước chuỗi LLM. Metadata dựng sẵn các nút <span class="mono">VanBan</span> kèm thuộc tính <span class="mono">conHieuLuc</span>, để khi đường LLM trích ra điều khoản thì nó gắn vào văn bản đã có sẵn trạng thái đúng. Chạy ngược lại thì điều khoản treo lơ lửng một lúc, và bước chuẩn hóa tên có thể gộp nhầm hai văn bản khác số hiệu.</p>
+    <p>Chạy chuỗi metadata trước chuỗi LLM. Metadata dựng sẵn các nút <span class="mono">VanBan</span> kèm thuộc tính <span class="mono">conHieuLuc</span>, để khi đường LLM trích ra điều khoản thì nó gắn vào văn bản đã có sẵn trạng thái đúng. Chạy ngược lại thì điều khoản treo lơ lửng một lúc, và bước entity standardization có thể gộp nhầm hai văn bản khác số hiệu.</p>
   </div>
 
   <h3>Lệnh chạy</h3>
@@ -1382,7 +1382,7 @@ cd solver  &amp;&amp; python evalForLegal.py &amp;&amp; cd ..</code></pre>
 </div>
 
 <footer>
-  <p>Bốn nhãn nguồn dùng suốt trang. <em>Từ repo</em> là nội dung thật trong OpenSPG/KAG 0.8.0, giữ nguyên tên trường và tên hàm, chỉ dịch phần chú thích. <em>Từ bộ dữ liệu</em> là số liệu và trích dẫn thật trong kag-legal-data. <em>Viết cho dự án này</em> là phần tôi tự soạn, gồm schema Legal, cấu hình pattern_splitter, các kế hoạch logical form và bản đồ file, chúng dùng đúng cú pháp của repo nhưng chưa chạy thật. <em>Minh họa</em> là kết quả điển hình dựng lại cho dễ theo dõi, không phải log chạy thật.</p>
+  <p>Bốn nhãn nguồn dùng suốt trang. <em>Từ repo</em> là nội dung thật trong OpenSPG/KAG 0.8.0, giữ nguyên tên trường và tên hàm, chỉ dịch phần chú thích. <em>Từ bộ dữ liệu</em> là số liệu và trích dẫn thật trong kag-legal-data. <em>Viết cho dự án này</em> là phần tôi tự soạn, gồm schema Legal, cấu hình pattern_splitter, các logical form và bản đồ file, chúng dùng đúng cú pháp của repo nhưng chưa chạy thật. <em>Minh họa</em> là kết quả điển hình dựng lại cho dễ theo dõi, không phải log chạy thật.</p>
   <p>Các điểm ghi chưa xác minh: danh sách service trong docker-compose của OpenSPG, số lần gọi LLM chính xác cho mỗi câu hỏi, và mọi con số token cùng thời gian ước tính ở mục 06, vốn là phép nhân tuyến tính chứ không phải số đo chạy thật trên kho luật.</p>
 </footer>
 

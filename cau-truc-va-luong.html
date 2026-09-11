@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Đọc mã nguồn OpenSPG/KAG 0.8.0: bản đồ thư mục, cơ chế đăng ký, đường dựng chỉ mục, đường trả lời, baseline và benchmark.">
+<meta name="description" content="Đọc mã nguồn OpenSPG/KAG 0.8.0: bản đồ thư mục, registry, index builder, solver, baseline và benchmark.">
 <title>Cấu trúc và luồng chạy KAG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,9 +24,9 @@
   <div class="rail-mark">Cấu trúc và luồng chạy KAG<span>Đọc mã nguồn OpenSPG/KAG</span></div>
   <ul class="toc" id="toc">
     <li><a href="#s1"><em>01</em><span>Bản đồ thư mục</span></a></li>
-    <li><a href="#s2"><em>02</em><span>Trục xương sống, cơ chế đăng ký</span></a></li>
-    <li><a href="#s3"><em>03</em><span>Đường dựng chỉ mục</span></a></li>
-    <li><a href="#s4"><em>04</em><span>Đường trả lời</span></a></li>
+    <li><a href="#s2"><em>02</em><span>Backbone, registry</span></a></li>
+    <li><a href="#s3"><em>03</em><span>Index builder</span></a></li>
+    <li><a href="#s4"><em>04</em><span>Solver</span></a></li>
     <li><a href="#s5"><em>05</em><span>Hai baseline, hai thứ khác nhau</span></a></li>
     <li><a href="#s6"><em>06</em><span>Khái niệm nối tới mã</span></a></li>
     <li><a href="#s7"><em>07</em><span>Từ điển</span></a></li>
@@ -34,8 +34,8 @@
   </ul>
   <div class="rail-foot">
     mã: OpenSPG/KAG 0.8.0<br>
-    11 khối · 512 file .py<br>
-    11 sơ đồ
+    11 khối · 513 file .py<br>
+    14 sơ đồ
   </div>
 </nav>
 
@@ -44,7 +44,7 @@
 <header class="hero">
   <p class="eyebrow">OpenSPG · KAG 0.8.0 · Đọc thẳng mã nguồn</p>
   <h1>Cấu trúc và luồng chạy KAG</h1>
-  <p class="lede">Trang trước giải thích KAG làm được gì. Trang này mở mã ra xem nó làm bằng cách nào. <strong>Toàn bộ KAG đứng trên một cơ chế duy nhất: lớp trừu tượng khai hợp đồng, bản cài đặt tự dán nhãn tên, tên đó nằm trong file YAML, và một sổ đăng ký dựng object lúc chạy.</strong> Hiểu vòng đó rồi thì mọi thư mục còn lại chỉ là danh sách các bản cài đặt.</p>
+  <p class="lede">Trang trước giải thích KAG làm được gì. Trang này mở mã ra xem nó làm bằng cách nào. <strong>Toàn bộ KAG đứng trên một cơ chế duy nhất: abstract class khai hợp đồng, bản cài đặt tự dán nhãn tên, tên đó nằm trong file YAML, và một registry dựng object lúc chạy.</strong> Hiểu vòng đó rồi thì mọi thư mục còn lại chỉ là danh sách các bản cài đặt.</p>
 </header>
 
 <div class="wrap">
@@ -59,24 +59,25 @@
     <thead><tr><th>Khối</th><th>Giữ việc gì</th><th>File .py</th></tr></thead>
     <tbody>
       <tr><td>kag/bin/</td><td style="font-family:var(--sans)">Cửa vào dòng lệnh. <span class="mono">kag_cmds.py</span> dựng bộ phân tích tham số, thư mục <span class="mono">commands/</span> mỗi lệnh con một file: builder, benchmark, info, mcp_server.</td><td>8</td></tr>
-      <tr><td>kag/bridge/</td><td style="font-family:var(--sans)">Cầu nối cho máy chủ SPG viết bằng Java gọi ngược vào Python. Đúng một file thật là <span class="mono">spg_server_bridge.py</span>, phần lớn import nằm thụt trong hàm để hoãn việc nạp mô-đun nặng.</td><td>2</td></tr>
-      <tr><td>kag/builder/</td><td style="font-family:var(--sans)">Đường dựng chỉ mục: đọc tài liệu, cắt đoạn, trích tri thức, vector hóa, ghi vào kho đồ thị. Toàn bộ mắt xích nằm trong <span class="mono">component/</span>.</td><td>85</td></tr>
-      <tr><td>kag/common/</td><td style="font-family:var(--sans)">Hạ tầng dùng chung: đọc cấu hình, khách gọi LLM, kho đồ thị, mô hình nhúng, mô hình xếp lại, bộ phân tích cú pháp, sổ đăng ký, và các công cụ thuật toán mà solver gọi.</td><td>96</td></tr>
-      <tr><td>kag/indexer/</td><td style="font-family:var(--sans)">Khai báo các loại chỉ mục và sáu bộ quản lý chỉ mục. Chỉ ba file, nhưng đây là chỗ quyết định một kho sẽ trích cái gì và tra bằng đường nào.</td><td>3</td></tr>
-      <tr><td>kag/interface/</td><td style="font-family:var(--sans)">Tầng hợp đồng. Mọi lớp trừu tượng đều nằm ở đây, chia theo builder, solver, indexer, common. Không chứa logic thật, chỉ chứa hình dạng mà bản cài đặt phải theo.</td><td>49</td></tr>
-      <tr><td>kag/mcp/</td><td style="font-family:var(--sans)">Máy chủ MCP, mở KAG ra ngoài thành công cụ cho tác nhân khác gọi. <span class="mono">server/kag_mcp_server.py</span> phơi hai công cụ, hỏi đáp và truy hồi kho.</td><td>3</td></tr>
-      <tr><td>kag/solver/</td><td style="font-family:var(--sans)">Đường trả lời: lập kế hoạch, thực thi, gộp kết quả, sinh câu trả lời, báo cáo tiến trình. Khối lớn nhất repo.</td><td>108</td></tr>
+      <tr><td>kag/bridge/</td><td style="font-family:var(--sans)">Cầu nối cho máy chủ SPG viết bằng Java gọi ngược vào Python. Đúng một file thật là <span class="mono">spg_server_bridge.py</span> (<span class="mono">__init__.py</span> rỗng 0 byte). Trong đó 9 import nằm ở đầu file, 7 import thụt trong hàm để hoãn nạp mô-đun nặng: <span class="mono">BuilderMain</span>, <span class="mono">SolverMain</span>, <span class="mono">BuilderComponentData</span>, hai <span class="mono">ConfigChecker</span>.</td><td>2</td></tr>
+      <tr><td>kag/builder/</td><td style="font-family:var(--sans)">Index builder: đọc tài liệu, cắt đoạn, trích tri thức, vectorize, ghi vào kho đồ thị. Toàn bộ mắt xích nằm trong <span class="mono">component/</span>.</td><td>85</td></tr>
+      <tr><td>kag/common/</td><td style="font-family:var(--sans)">Hạ tầng dùng chung: đọc cấu hình, khách gọi LLM, kho đồ thị, mô hình embedding, mô hình rerank, bộ phân tích cú pháp, registry, và các công cụ thuật toán mà solver gọi.</td><td>96</td></tr>
+      <tr><td>kag/indexer/</td><td style="font-family:var(--sans)">Khai báo các loại index và sáu index manager. Chỉ ba file, nhưng đây là chỗ quyết định một kho sẽ trích cái gì và tra bằng đường nào.</td><td>3</td></tr>
+      <tr><td>kag/interface/</td><td style="font-family:var(--sans)">Tầng hợp đồng, chia theo builder, solver, indexer, common. Nhưng <strong>chỉ 10 trên 49 file có <span class="mono">abstractmethod</span></strong>: 39 file còn lại là data model và logic chạy thật, nặng nhất là <span class="mono">common/model/retriever_data.py</span> 1109 dòng và <span class="mono">common/llm_client.py</span> 519 dòng chứa <span class="mono">TokenMeter</span> đọc ghi file ckpt.</td><td>49</td></tr>
+      <tr><td>kag/mcp/</td><td style="font-family:var(--sans)">Máy chủ MCP, mở KAG ra ngoài thành công cụ cho tác nhân khác gọi. <span class="mono">server/kag_mcp_server.py</span> phơi hai công cụ, hỏi đáp và retrieval kho.</td><td>3</td></tr>
+      <tr><td>kag/solver/</td><td style="font-family:var(--sans)">Solver: planner, executor, gộp kết quả, sinh câu trả lời, báo cáo tiến trình. Khối lớn nhất repo.</td><td>108</td></tr>
       <tr><td>kag/examples/</td><td style="font-family:var(--sans)">Mười dự án mẫu chạy được: baike, medicine, riskmining, supplychain, csqa, domain_kg, FinAlibaba, NetOperatorQA, hai ví dụ MCP. Dùng KAG như thư viện ngoài.</td><td>85</td></tr>
-      <tr><td>kag/open_benchmark/</td><td style="font-family:var(--sans)">Bộ chấm điểm trên năm tập dữ liệu công khai. Cũng dùng KAG như thư viện ngoài, không ai trong lõi import ngược nó.</td><td>64</td></tr>
+      <tr><td>kag/open_benchmark/</td><td style="font-family:var(--sans)">Bộ chấm điểm trên năm tập dữ liệu công khai: 2wiki, AffairQA, hotpotqa, musique, prqa. Gần như là lá, nhưng có đúng hai chỗ trong lõi import ngược nó, cả hai là import hoãn trong hàm: <span class="mono">bin/commands/benchmark.py</span> dòng 145 và <span class="mono">mcp/server/kag_mcp_server.py</span> dòng 116.</td><td>64</td></tr>
       <tr><td>kag/templates/</td><td style="font-family:var(--sans)">Khuôn mẫu cho lệnh tạo dự án mới. Chín file gần như rỗng, không có một dòng <span class="mono">import kag</span> nào.</td><td>9</td></tr>
     </tbody>
   </table>
   </div>
   <span class="src">từ repo · số file .py đếm bằng find, OpenSPG/KAG 0.8.0</span>
 
-  <p class="col">Đếm số dòng <span class="mono">from kag.X</span> thật trong từng khối cho ra thứ bậc rõ ràng. <strong>interface bị import 361 lượt, common bị import 240 lượt.</strong> Hai khối đó là nền. Ngược lại, <span class="mono">bin</span> và <span class="mono">bridge</span> không bị bất kỳ khối nào import lại, chúng nằm trên cùng.</p>
+  <p class="col">Đếm số dòng <span class="mono">from kag.X</span> thật trong từng khối cho ra thứ bậc rõ ràng. <strong>interface bị import 361 lượt, common bị import 317 lượt.</strong> Hai khối đó là nền. Cách đếm: <span class="mono">grep -rE &quot;^\s*from kag\.X&quot;</span> trên chín khối lõi, tính cả import thụt trong hàm, không tính <span class="mono">examples</span> và <span class="mono">open_benchmark</span>. Ngược lại, <span class="mono">bridge</span> không bị chỗ nào import, còn <span class="mono">bin</span> không bị khối lõi nào import nhưng vẫn bị chính <span class="mono">kag/__init__.py</span> gọi <span class="mono">import kag.bin.commands</span>.</p>
 
   <figure class="wide">
+  <div class="figx">
   <svg class="dg" viewBox="0 0 940 430" role="img" aria-label="Đồ thị phụ thuộc import giữa các khối trong kag. Tầng trên là bin, bridge, mcp không bị ai import lại. Tầng giữa là builder, solver, indexer. Tầng nền là interface và common, bị import nhiều nhất. Hai khối examples và open_benchmark nằm ngoài, dùng lõi như thư viện.">
     <defs>
       <marker id="m1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -96,14 +97,14 @@
 
     <text class="t-tiny" x="20" y="272">TẦNG NỀN · BỊ IMPORT NHIỀU NHẤT</text>
     <rect class="bx-a" x="20" y="282" width="204" height="52" rx="2"/><text class="t-lbl" x="34" y="304">kag/interface</text><text class="t-tiny" x="34" y="322">361 LƯỢT BỊ IMPORT</text>
-    <rect class="bx-a" x="244" y="282" width="204" height="52" rx="2"/><text class="t-lbl" x="258" y="304">kag/common</text><text class="t-tiny" x="258" y="322">240 LƯỢT BỊ IMPORT</text>
+    <rect class="bx-a" x="244" y="282" width="204" height="52" rx="2"/><text class="t-lbl" x="258" y="304">kag/common</text><text class="t-tiny" x="258" y="322">317 LƯỢT BỊ IMPORT</text>
 
     <!-- bin -> common -->
     <path class="ln" d="M 86 74 L 86 116 L 470 116 L 470 262 L 346 262 L 346 280" marker-end="url(#m1n)"/>
     <text class="t-tiny" x="356" y="132">bin gọi cấu hình chung · 10 dòng</text>
     <!-- builder -> interface -->
     <path class="ln-a" d="M 86 198 L 86 280" marker-end="url(#m1a)"/>
-    <text class="t-tiny" x="94" y="232">kế thừa lớp trừu tượng</text><text class="t-tiny" x="94" y="248">82 dòng</text>
+    <text class="t-tiny" x="94" y="232">kế thừa abstract class</text><text class="t-tiny" x="94" y="248">82 dòng</text>
     <!-- solver -> interface -->
     <path class="ln-a" d="M 210 198 L 210 236 L 170 236 L 170 280" marker-end="url(#m1a)"/>
     <text class="t-tiny" x="220" y="266">solver &rarr; interface · 131 dòng</text>
@@ -126,8 +127,8 @@
     <rect class="bx-g" x="576" y="112" width="150" height="44" rx="2"/><text class="t-lbl" x="590" y="139">open_benchmark</text>
     <text class="t-tiny" x="742" y="72">nhập builder, solver,</text>
     <text class="t-tiny" x="742" y="88">common, interface</text>
-    <text class="t-tiny" x="742" y="132">không khối lõi nào</text>
-    <text class="t-tiny" x="742" y="148">import ngược hai cái này</text>
+    <text class="t-tiny" x="742" y="132">lõi import ngược đúng 2 chỗ,</text>
+    <text class="t-tiny" x="742" y="148">đều hoãn trong hàm</text>
     <path class="ln-g" d="M 640 156 L 640 178 L 520 178 L 520 300 L 452 300" marker-end="url(#m1g)"/>
     <text class="t-tiny" x="470" y="246">gọi xuống nền</text>
 
@@ -135,29 +136,30 @@
     <text class="t-tiny" x="560" y="322">Con số là số dòng import thật, đếm bằng grep.</text>
     <text class="t-tiny" x="560" y="404">kag/templates là khối lá duy nhất: 0 dòng import kag.</text>
   </svg>
-  <figcaption><strong>Hai khối nền đỡ tất cả.</strong> Không khối lõi nào là lá, mỗi khối đều nhập ít nhất <span class="mono">common</span> hoặc <span class="mono">interface</span>. Gần lá nhất là <span class="mono">indexer</span>, chỉ nhập hai khối nền và chỉ bị nhập ở hai chỗ. Hai vòng ngược nét đứt là thật, đọc được trong mã: tám file <span class="mono">*_abc.py</span> của interface nhập ngược <span class="mono">kag.builder.model</span>, và ba file trong <span class="mono">kag/common/tools/algorithm_tool/</span> nhập ngược <span class="mono">kag.solver.utils</span> ngay đầu file. Việc hai vòng này có gây lỗi nhập lúc chạy hay không thì <span class="mono">chưa xác minh</span>, vì chưa chạy thử.</figcaption>
+  </div>
+  <figcaption><strong>Hai khối nền đỡ tất cả.</strong> Không khối lõi nào là lá, mỗi khối đều nhập ít nhất <span class="mono">common</span> hoặc <span class="mono">interface</span>. Gần lá nhất là <span class="mono">indexer</span>, chỉ nhập hai khối nền và chỉ bị nhập ở hai chỗ. Hai vòng ngược nét đứt là thật, đọc được trong mã: tám file <span class="mono">*_abc.py</span> của interface nhập ngược <span class="mono">kag.builder.model</span> (9 dòng, vì <span class="mono">extractor_abc.py</span> có hai), cộng một cạnh ngược thứ chín không phải <span class="mono">*_abc.py</span>: <span class="mono">interface/common/model/sub_graph.py</span> dòng 16 nhập <span class="mono">kag.builder.model.spg_record</span>. Chiều còn lại là ba file trong <span class="mono">kag/common/tools/algorithm_tool/</span> nhập ngược <span class="mono">kag.solver.utils</span> ngay đầu file, cả ba lấy cùng một hàm <span class="mono">init_prompt_with_fallback</span>. Việc hai vòng này có gây lỗi nhập lúc chạy hay không thì <span class="mono">chưa xác minh</span>, vì chưa chạy thử.</figcaption>
   </figure>
 </section>
 
 <!-- ============ 02 ============ -->
 <section id="s2">
-  <div class="sec-head"><span class="sec-num">02</span><h2>Trục xương sống, cơ chế đăng ký</h2></div>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Backbone, registry</h2></div>
   <p class="sec-sub">Đây là phần quan trọng nhất trang. Nắm được vòng này thì phần còn lại của mã chỉ là danh sách các bản cài đặt treo vào vòng đó.</p>
 
   <div class="callout">
     <span class="k">Ba từ cần hiểu trước</span>
-    <p><strong>Lớp trừu tượng</strong> là một lớp chỉ khai hình dạng, khai tên hàm và tham số, không viết thân hàm. Nó nói &ldquo;ai muốn làm việc này thì phải có đúng những hàm này&rdquo;. <strong>Decorator đăng ký</strong> là một dòng chú thích đặt ngay trên một lớp, dạng <span class="mono">@LớpTrừuTượng.register("tên")</span>, có tác dụng dán một cái tên chuỗi lên lớp đó. <strong>Sổ đăng ký</strong> là một cuốn danh bạ trong bộ nhớ, ánh xạ từ cái tên chuỗi đó về đúng lớp đã dán nhãn.</p>
+    <p><strong>Abstract class</strong> là một lớp chỉ khai hình dạng, khai tên hàm và tham số, không viết thân hàm. Nó nói &ldquo;ai muốn làm việc này thì phải có đúng những hàm này&rdquo;. <strong>Register decorator</strong> là một dòng chú thích đặt ngay trên một lớp, dạng <span class="mono">@AbstractClass.register("tên")</span>, có tác dụng dán một cái tên chuỗi lên lớp đó. <strong>Registry</strong> là một registry trong bộ nhớ, mapping từ cái tên chuỗi đó về đúng lớp đã dán nhãn.</p>
   </div>
 
-  <p class="col">Tất cả nằm trong một lớp duy nhất: <span class="mono">Registrable</span>, ở <span class="mono">kag/common/registry/registrable.py</span> dòng 493. Cuốn danh bạ là thuộc tính cấp lớp ở dòng 499:</p>
+  <p class="col">Tất cả nằm trong một lớp duy nhất: <span class="mono">Registrable</span>, ở <span class="mono">kag/common/registry/registrable.py</span> dòng 493. Cuốn registry là thuộc tính cấp lớp ở dòng 499:</p>
 
 <pre><code><span class="tok-k">class</span> Registrable:
     _registry: Dict[Type, Dict[str, Tuple[Type, Optional[str]]]] = defaultdict(dict)</code></pre>
   <span class="src">từ repo · kag/common/registry/registrable.py dòng 493 và 499</span>
 
-  <p class="col">Đọc kiểu dữ liệu đó là đọc được cả cơ chế. Danh bạ có hai tầng. Tầng ngoài lấy khóa là <em>lớp trừu tượng</em>, nên mỗi lớp trừu tượng có một danh bạ riêng, tên trùng nhau ở hai họ khác nhau không đụng nhau. Tầng trong lấy khóa là <em>tên chuỗi</em>, giá trị là một cặp: lớp con thật, và tên hàm dựng nếu bản cài đặt muốn dùng hàm dựng riêng thay cho <span class="mono">__init__</span>.</p>
+  <p class="col">Đọc kiểu dữ liệu đó là đọc được cả cơ chế. Registry có hai tầng. Tầng ngoài lấy khóa là <em>abstract class</em>, nên mỗi abstract class có một registry riêng, tên trùng nhau ở hai họ khác nhau không đụng nhau. Tầng trong lấy khóa là <em>tên chuỗi</em>, giá trị là một cặp: lớp con thật, và tên hàm dựng nếu bản cài đặt muốn dùng hàm dựng riêng thay cho <span class="mono">__init__</span>.</p>
 
-  <p class="col">Hàm ghi vào danh bạ là <span class="mono">register</span>, một classmethod ở dòng 507. Hàm đọc ra và dựng object là <span class="mono">from_config</span>, dòng 681. Chỗ quan trọng nhất của <span class="mono">from_config</span> là nó <em>lấy khóa</em> <span class="mono">"type"</span> ra khỏi dict cấu hình, tại dòng 726 và dòng 771, rồi lấy chuỗi đó đi tra danh bạ. Nghĩa là khóa <span class="mono">type</span> trong file YAML không phải một nhãn trang trí, nó chính là khóa tra cứu.</p>
+  <p class="col">Hàm ghi vào registry là <span class="mono">register</span>, một classmethod ở dòng 508 (decorator <span class="mono">@classmethod</span> ở 507). Hàm đọc ra và dựng object là <span class="mono">from_config</span>, dòng 682. Chỗ quan trọng nhất của <span class="mono">from_config</span> là nó <em>lấy khóa</em> <span class="mono">"type"</span> ra khỏi dict cấu hình bằng <span class="mono">params.pop</span>, tại dòng 732 và dòng 774, rồi lấy chuỗi đó đi tra registry. Nghĩa là khóa <span class="mono">type</span> trong file YAML không phải một nhãn trang trí, nó chính là khóa tra cứu.</p>
 
   <p class="col">Một lớp cài đặt có thể dán nhiều tên. Ví dụ thật, cùng một lớp mang hai nhãn, một tên ngắn và một tên đầy đủ:</p>
 
@@ -168,7 +170,8 @@
   <span class="src">từ repo · kag/builder/component/extractor/schema_free_extractor.py</span>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 430" role="img" aria-label="Vòng đăng ký khép kín năm chặng: lớp trừu tượng khai hợp đồng, bản cài đặt gắn decorator dán nhãn tên, sổ đăng ký lưu cặp tên và lớp con, file YAML mang đúng cái tên đó, from_config tra sổ dựng ra object, và object đó là thể hiện của chính lớp trừu tượng ban đầu.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 430" role="img" aria-label="Vòng registry khép kín năm chặng: abstract class khai hợp đồng, bản cài đặt gắn decorator dán nhãn tên, registry lưu cặp tên và lớp con, file YAML mang đúng cái tên đó, from_config tra registry dựng ra object, và object đó là thể hiện của chính abstract class ban đầu.">
     <defs>
       <marker id="m2n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="m2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -185,7 +188,7 @@
     <text class="t-tiny" x="54" y="332">"schema_free_extractor" · dòng 34</text>
 
     <rect class="bx-o" x="600" y="268" width="300" height="76" rx="2"/>
-    <text class="t-tiny" x="614" y="290">3 · SỔ ĐĂNG KÝ</text>
+    <text class="t-tiny" x="614" y="290">3 · REGISTRY</text>
     <text class="t-lbl" x="614" y="312">Registrable._registry</text>
     <text class="t-tiny" x="614" y="332">dòng 499 · dict lồng hai tầng</text>
 
@@ -197,38 +200,40 @@
     <rect class="bx" x="600" y="48" width="300" height="76" rx="2"/>
     <text class="t-tiny" x="614" y="70">5 · OBJECT LÚC CHẠY</text>
     <text class="t-lbl" x="614" y="92">SchemaFreeExtractor()</text>
-    <text class="t-tiny" x="614" y="112">dựng bởi from_config · dòng 681</text>
+    <text class="t-tiny" x="614" y="112">dựng bởi from_config · dòng 682</text>
 
     <path class="ln" d="M 190 124 L 190 264" marker-end="url(#m2n)"/>
-    <text class="t-tiny" x="202" y="180">kế thừa lớp trừu tượng,</text>
-    <text class="t-tiny" x="202" y="196">gắn decorator đăng ký</text>
+    <text class="t-tiny" x="202" y="180">kế thừa abstract class,</text>
+    <text class="t-tiny" x="202" y="196">gắn register decorator</text>
 
     <path class="ln" d="M 340 306 L 596 306" marker-end="url(#m2n)"/>
-    <text class="t-tiny" x="356" y="296">ghi cặp tên &rarr; lớp con vào sổ</text>
-    <text class="t-tiny" x="356" y="328">dòng 507 · register()</text>
+    <text class="t-tiny" x="356" y="296">ghi cặp tên &rarr; lớp con vào registry</text>
+    <text class="t-tiny" x="356" y="328">dòng 508 · register()</text>
 
     <path class="ln-a" d="M 560 198 L 640 198 L 640 264" marker-end="url(#m2a)"/>
     <text class="t-tiny" x="384" y="254">khóa type mang đúng</text>
-    <text class="t-tiny" x="384" y="270">tên đã đăng ký</text>
+    <text class="t-tiny" x="384" y="270">tên đã register</text>
 
     <path class="ln-a" d="M 750 268 L 750 128" marker-end="url(#m2a)"/>
-    <text class="t-tiny" x="762" y="172">from_config tra sổ</text>
+    <text class="t-tiny" x="762" y="172">from_config tra registry</text>
     <text class="t-tiny" x="762" y="188">theo tên rồi gọi</text>
-    <text class="t-tiny" x="762" y="204">hàm dựng · dòng 681</text>
+    <text class="t-tiny" x="762" y="204">hàm dựng · dòng 682</text>
 
     <path class="ln-a" d="M 596 86 L 344 86" marker-end="url(#m2a)"/>
     <text class="t-tiny" x="368" y="76">object là thể hiện của lớp ở ô 1</text>
 
-    <text class="t-tiny" x="40" y="388">SỔ = dict lồng: { lớp trừu tượng: { tên: (lớp con, tên hàm dựng) } }</text>
-    <text class="t-tiny" x="40" y="406">from_config lấy khóa "type" ra khỏi dict cấu hình rồi tra sổ · dòng 726 và 771</text>
+    <text class="t-tiny" x="40" y="388">REGISTRY = dict lồng: { abstract class: { tên: (lớp con, tên hàm dựng) } }</text>
+    <text class="t-tiny" x="40" y="406">from_config lấy khóa "type" ra khỏi dict cấu hình rồi tra registry · dòng 732 và 774</text>
   </svg>
-  <figcaption><strong>Vòng khép kín, không có chỗ nào gọi thẳng tên lớp.</strong> Hình này chứng minh một điều: giữa file cấu hình và lớp cài đặt không có lệnh <span class="mono">import</span> nào cả, chỉ có một chuỗi ký tự đi qua cuốn danh bạ. Đổi một dòng <span class="mono">type</span> trong YAML là đổi hẳn lớp chạy thật, mã Python không sửa một chữ. Đó cũng là lý do mọi thư mục cài đặt đều phải được nạp lên trước khi tra sổ, vì decorator chỉ chạy khi mô-đun được nạp.</figcaption>
+  </div>
+  <figcaption><strong>Vòng khép kín, không có chỗ nào gọi thẳng tên lớp.</strong> Hình này chứng minh một điều: giữa file cấu hình và lớp cài đặt không có lệnh <span class="mono">import</span> nào cả, chỉ có một chuỗi ký tự đi qua registry. Đổi một dòng <span class="mono">type</span> trong YAML là đổi hẳn lớp chạy thật, mã Python không sửa một chữ. Đó cũng là lý do mọi thư mục cài đặt đều phải được nạp lên trước khi tra registry, vì decorator chỉ chạy khi mô-đun được nạp.</figcaption>
   </figure>
 
-  <p class="col">Vòng trên là lý thuyết. Bây giờ lấy một file cấu hình thật trong repo và xem từng khóa rơi vào lớp nào. File dùng làm ví dụ là <span class="mono">kag/examples/medicine/kag_config.yaml</span>, dài 208 dòng, chứa 44 khóa <span class="mono">type</span>.</p>
+  <p class="col">Vòng trên là lý thuyết. Bây giờ lấy một file cấu hình thật trong repo và xem từng khóa rơi vào lớp nào. File dùng làm ví dụ là <span class="mono">kag/examples/medicine/kag_config.yaml</span>, dài 208 dòng, chứa 45 khóa <span class="mono">type</span>.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 480" role="img" aria-label="Bảy khóa type trong file kag_config.yaml của ví dụ medicine, mỗi khóa nối sang đúng file cài đặt mang decorator đăng ký cùng tên, kèm số dòng thật của cả hai bên.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 480" role="img" aria-label="Bảy khóa type trong file kag_config.yaml của ví dụ medicine, mỗi khóa nối sang đúng file cài đặt mang register decorator cùng tên, kèm số dòng thật của cả hai bên.">
     <defs>
       <marker id="m3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
     </defs>
@@ -241,79 +246,148 @@
     <rect class="bx" x="560" y="48" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="68">kag/common/llm/openai_client.py</text><text class="t-tiny" x="574" y="86">dòng 30 · @LLMClient.register</text>
     <path class="ln-a" d="M 400 72 L 556 72" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="64">sổ của LLMClient</text>
+    <text class="t-tiny" x="408" y="64">LLMClient</text>
 
     <rect class="bx-g" x="24" y="108" width="376" height="48" rx="2"/>
     <text class="t-lbl" x="38" y="128">vectorize_model</text><text class="t-tiny" x="38" y="146">dòng 16 · type: openai</text>
     <rect class="bx" x="560" y="108" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="128">common/vectorize_model/openai_model.py</text><text class="t-tiny" x="574" y="146">dòng 21 · @VectorizeModelABC.register</text>
     <path class="ln-a" d="M 400 132 L 556 132" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="124">sổ của VectorizeModelABC</text>
+    <text class="t-tiny" x="408" y="124">VectorizeModelABC</text>
 
     <rect class="bx-g" x="24" y="168" width="376" height="48" rx="2"/>
     <text class="t-lbl" x="38" y="188">extract_runner &rsaquo; chain</text><text class="t-tiny" x="38" y="206">dòng 40 · type: unstructured_builder_chain</text>
     <rect class="bx" x="560" y="168" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="188">kag/builder/default_chain.py</text><text class="t-tiny" x="574" y="206">dòng 77 · @KAGBuilderChain.register</text>
     <path class="ln-a" d="M 400 192 L 556 192" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="184">sổ của KAGBuilderChain</text>
+    <text class="t-tiny" x="408" y="184">KAGBuilderChain</text>
 
     <rect class="bx-g" x="24" y="228" width="376" height="48" rx="2"/>
     <text class="t-lbl" x="38" y="248">chain &rsaquo; extractor</text><text class="t-tiny" x="38" y="266">dòng 42 · type: schema_free_extractor</text>
     <rect class="bx" x="560" y="228" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="248">extractor/schema_free_extractor.py</text><text class="t-tiny" x="574" y="266">dòng 34 · @ExtractorABC.register</text>
     <path class="ln-a" d="M 400 252 L 556 252" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="244">sổ của ExtractorABC</text>
+    <text class="t-tiny" x="408" y="244">ExtractorABC</text>
 
     <rect class="bx-g" x="24" y="288" width="376" height="48" rx="2"/>
     <text class="t-lbl" x="38" y="308">chain &rsaquo; splitter</text><text class="t-tiny" x="38" y="326">dòng 58 · type: length_splitter</text>
     <rect class="bx" x="560" y="288" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="308">splitter/length_splitter.py</text><text class="t-tiny" x="574" y="326">dòng 22 · @SplitterABC.register</text>
     <path class="ln-a" d="M 400 312 L 556 312" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="304">sổ của SplitterABC</text>
+    <text class="t-tiny" x="408" y="304">SplitterABC</text>
 
     <rect class="bx-g" x="24" y="348" width="376" height="48" rx="2"/>
     <text class="t-lbl" x="38" y="368">kag_solver_pipeline</text><text class="t-tiny" x="38" y="386">dòng 189 · type: kag_static_pipeline</text>
     <rect class="bx" x="560" y="348" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="368">solver/pipeline/kag_static_pipeline.py</text><text class="t-tiny" x="574" y="386">dòng 29 · @SolverPipelineABC.register</text>
     <path class="ln-a" d="M 400 372 L 556 372" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="364">sổ của SolverPipelineABC</text>
+    <text class="t-tiny" x="408" y="364">SolverPipelineABC</text>
 
     <rect class="bx-g" x="24" y="408" width="376" height="48" rx="2"/>
     <text class="t-lbl" x="38" y="428">pipeline &rsaquo; planner</text><text class="t-tiny" x="38" y="446">dòng 191 · type: lf_kag_static_planner</text>
     <rect class="bx" x="560" y="408" width="356" height="48" rx="2"/>
     <text class="t-lbl" x="574" y="428">solver/planner/lf_kag_static_planner.py</text><text class="t-tiny" x="574" y="446">dòng 21 · @PlannerABC.register</text>
     <path class="ln-a" d="M 400 432 L 556 432" marker-end="url(#m3a)"/>
-    <text class="t-tiny" x="408" y="424">sổ của PlannerABC</text>
+    <text class="t-tiny" x="408" y="424">PlannerABC</text>
   </svg>
-  <figcaption><strong>Bảy khóa, bảy cuốn sổ khác nhau.</strong> Hình này chứng minh mỗi lớp trừu tượng giữ một danh bạ riêng, nên cái tên bên trái chỉ có nghĩa trong phạm vi cuốn sổ mà nhãn kia thuộc về. Cùng file YAML, khóa <span class="mono">chat_llm</span> tra sổ <span class="mono">LLMClient</span> còn khóa <span class="mono">splitter</span> tra sổ <span class="mono">SplitterABC</span>, hai bên không biết nhau. Chuỗi nạp cấu hình đi từ <span class="mono">kag/common/conf.py</span>, phần đọc file YAML và ráp các neo <span class="mono">&amp;</span>/<span class="mono">*</span> thì <span class="mono">chưa xác minh</span> tới từng dòng.</figcaption>
+  </div>
+  <figcaption><strong>Bảy khóa, bảy registry khác nhau.</strong> Hình này chứng minh mỗi abstract class giữ một registry riêng, nên cái tên bên trái chỉ có nghĩa trong phạm vi registry mà nhãn kia thuộc về. Cùng file YAML, khóa <span class="mono">chat_llm</span> tra registry <span class="mono">LLMClient</span> còn khóa <span class="mono">splitter</span> tra registry <span class="mono">SplitterABC</span>, hai bên không biết nhau. Chuỗi nạp cấu hình đi từ <span class="mono">kag/common/conf.py</span>, đã đọc tới từng dòng và vẽ ở hình dưới.</figcaption>
+  </figure>
+
+  <p class="col">Vòng registry chỉ chạy được khi đã có dict cấu hình trong tay. Dict đó tới từ đâu là câu hỏi riêng, và câu trả lời có hai nhánh khác hẳn nhau. Toàn bộ nằm trong <span class="mono">kag/common/conf.py</span>, 273 dòng.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 570" role="img" aria-label="Chuỗi nạp cấu hình trong conf.py. init_env tự quyết chạy nhánh local đọc file YAML hay nhánh server lấy JSON. Hai nhánh gộp về cùng một dict trong KAGConfigMgr, rồi dict đó mới được đưa vào ConfigFactory để thành ConfigTree cho registry.">
+    <defs>
+      <marker id="m12a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m12n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <rect class="bx-a" x="330" y="28" width="280" height="64" rx="2"/>
+    <text class="t-lbl" x="344" y="52">init_env(config_file=None)</text>
+    <text class="t-tiny" x="344" y="72">conf.py dòng 247 · tự quyết prod ở dòng 251-256</text>
+    <text class="t-tiny" x="344" y="86">có ENV_KAG_PROJECT_ID mà không có file hợp lệ &rarr; prod</text>
+
+    <path class="ln" d="M 400 92 L 400 116 L 246 116 L 246 142" marker-end="url(#m12n)"/>
+    <path class="ln" d="M 540 92 L 540 116 L 708 116 L 708 142" marker-end="url(#m12n)"/>
+
+    <rect class="panel" x="24" y="144" width="440" height="224" rx="3"/>
+    <text class="t-tiny" x="38" y="164">NHÁNH LOCAL · prod=False · dòng 146-156</text>
+    <rect class="bx" x="42" y="174" width="404" height="52" rx="2"/>
+    <text class="t-lbl" x="56" y="194">_closest_cfg()  ·  dòng 94-108</text>
+    <text class="t-tiny" x="56" y="212">leo thư mục cha tìm kag_config.yaml</text>
+    <rect class="bx" x="42" y="240" width="404" height="52" rx="2"/>
+    <text class="t-lbl" x="56" y="260">Template(config).render(**os.environ)  ·  153</text>
+    <text class="t-tiny" x="56" y="278">Jinja2 thay biến môi trường TRƯỚC khi parse YAML</text>
+    <rect class="bx-a" x="42" y="306" width="404" height="52" rx="2"/>
+    <text class="t-lbl" x="56" y="326">yaml.safe_load(config)  ·  dòng 154</text>
+    <text class="t-tiny" x="56" y="344">PyYAML tự giải neo &amp; và * — KAG không xử lý dòng nào</text>
+    <path class="ln" d="M 244 226 L 244 236" marker-end="url(#m12n)"/>
+    <path class="ln" d="M 244 292 L 244 302" marker-end="url(#m12n)"/>
+
+    <rect class="panel" x="488" y="144" width="428" height="224" rx="3"/>
+    <text class="t-tiny" x="502" y="164">NHÁNH SERVER · prod=True · dòng 123-145</text>
+    <rect class="bx" x="506" y="174" width="392" height="52" rx="2"/>
+    <text class="t-lbl" x="520" y="194">ProjectClient.get_by_id(...)</text>
+    <text class="t-tiny" x="520" y="212">kéo cấu hình về từ máy chủ OpenSPG</text>
+    <rect class="bx-g" x="506" y="240" width="392" height="52" rx="2"/>
+    <text class="t-lbl" x="520" y="260">json.loads(project.config)  ·  dòng 130</text>
+    <text class="t-tiny" x="520" y="278">JSON, không đụng YAML, nên KHÔNG có neo</text>
+    <rect class="bx" x="506" y="306" width="392" height="52" rx="2"/>
+    <text class="t-lbl" x="520" y="326">vá project · vectorizer · host_addr  ·  131-144</text>
+    <text class="t-tiny" x="520" y="344">bơm bù các khóa mà nhánh local đọc sẵn từ file</text>
+    <path class="ln" d="M 706 226 L 706 236" marker-end="url(#m12n)"/>
+    <path class="ln" d="M 706 292 L 706 302" marker-end="url(#m12n)"/>
+
+    <path class="ln-a" d="M 244 358 L 244 390 L 330 390 L 330 414" marker-end="url(#m12a)"/>
+    <path class="ln-a" d="M 706 358 L 706 390 L 620 390 L 620 414" marker-end="url(#m12a)"/>
+
+    <rect class="bx-a" x="190" y="416" width="560" height="60" rx="2"/>
+    <text class="t-lbl" x="204" y="438">KAGConfigMgr.config  —  dict Python thuần  ·  dòng 187</text>
+    <text class="t-tiny" x="204" y="458">singleton KAG_CONFIG 202 · KAG_PROJECT_CONF 204 · all_config trả deepcopy 193</text>
+
+    <path class="ln-a" d="M 470 476 L 470 496" marker-end="url(#m12a)"/>
+
+    <rect class="bx-o" x="190" y="498" width="560" height="60" rx="2"/>
+    <text class="t-lbl" x="204" y="520">ConfigFactory.from_dict(params) &rarr; ConfigTree</text>
+    <text class="t-tiny" x="204" y="540">registrable.py 712/716 · rồi pop khóa type ở 732 · tra registry · dựng object</text>
+
+    <text class="t-tiny" x="24" y="392">!ENV: dòng 85-91 register constructor cho tag !ENV,</text>
+    <text class="t-tiny" x="24" y="406">là cơ chế đọc biến môi trường thứ hai bên cạnh Jinja2.</text>
+    <text class="t-tiny" x="762" y="392">Neo YAML trả về CÙNG một</text>
+    <text class="t-tiny" x="762" y="406">object, không phải bản sao.</text>
+  </svg>
+  </div>
+  <figcaption><strong>Hai nguồn cấu hình, chỉ một đi qua YAML.</strong> Chạy local thì file <span class="mono">kag_config.yaml</span> được Jinja2 thay biến môi trường rồi mới đưa cho PyYAML. Chạy với máy chủ OpenSPG thì cấu hình về dưới dạng JSON, không có neo, và code phải bơm bù mấy khóa mà nhánh kia đọc sẵn từ file. Neo <span class="mono">&amp;</span>/<span class="mono">*</span> do chính PyYAML giải, không phải KAG: chạy thử trên file medicine cho <span class="mono">chain.vectorizer.vectorize_model is vectorize_model</span> ra <span class="mono">True</span>, tức sửa một dict đã bị neo là đổi mọi chỗ tham chiếu nó. Cấu hình chỉ thành <span class="mono">ConfigTree</span> của pyhocon khi đã bước vào <span class="mono">from_config</span>.</figcaption>
   </figure>
 </section>
 
 <!-- ============ 03 ============ -->
 <section id="s3">
-  <div class="sec-head"><span class="sec-num">03</span><h2>Đường dựng chỉ mục</h2></div>
-  <p class="sec-sub">Từ tài liệu thô thành đồ thị tri thức cộng vector. Toàn bộ mắt xích nằm trong mười thư mục con của <span class="mono">kag/builder/component/</span>.</p>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Index builder</h2></div>
+  <p class="sec-sub">Từ tài liệu thô thành knowledge graph cộng vector. Toàn bộ mắt xích nằm trong mười thư mục con của <span class="mono">kag/builder/component/</span>.</p>
 
   <div class="tw">
   <table class="filemap">
     <thead><tr><th>Thư mục con</th><th>Việc</th><th>File .py</th></tr></thead>
     <tbody>
-      <tr><td>scanner/</td><td style="font-family:var(--sans)">Quét nguồn, biến một thư mục hay một file bảng thành từng bản ghi rời để đưa vào chuỗi.</td><td>9</td></tr>
-      <tr><td>reader/</td><td style="font-family:var(--sans)">Đọc một bản ghi thành văn bản: pdf, docx, markdown, dict, csv.</td><td>9</td></tr>
+      <tr><td>scanner/</td><td style="font-family:var(--sans)">Quét nguồn, biến nó thành từng bản ghi rời. Không chỉ thư mục và file: có cả nguồn xa là bảng ODPS (MaxCompute), luồng log SLS và wiki Yuque.</td><td>9</td></tr>
+      <tr><td>reader/</td><td style="font-family:var(--sans)">Đọc một bản ghi thành văn bản. Tám reader thật: <span class="mono">dict, docx, markdown, markdown_to_graph, mix, mp, pdf, txt</span>. <strong>Không có reader csv</strong> — csv là một scanner, nằm ở tầng trên.</td><td>9</td></tr>
       <tr><td>splitter/</td><td style="font-family:var(--sans)">Cắt văn bản dài thành <strong>chunk</strong>, tức đoạn văn ngắn đủ để nhét vừa cửa sổ của mô hình.</td><td>6</td></tr>
-      <tr><td>extractor/</td><td style="font-family:var(--sans)">Trích thực thể và quan hệ từ mỗi đoạn. Chín bản cài đặt, gồm cả bản tự do không ràng buộc và bản ép theo schema.</td><td>10</td></tr>
-      <tr><td>vectorizer/</td><td style="font-family:var(--sans)">Gọi mô hình nhúng, gắn vector vào node để sau này tra theo độ giống nghĩa.</td><td>2</td></tr>
-      <tr><td>postprocessor/</td><td style="font-family:var(--sans)">Hậu xử lý đồ thị con: gộp thực thể trùng, dọn cạnh thừa.</td><td>2</td></tr>
+      <tr><td>extractor/</td><td style="font-family:var(--sans)">Trích thực thể và quan hệ từ mỗi đoạn. Chín class, nhưng <strong>12 tên register</strong> vì ba file khai alias kép. Gồm cả bản tự do không ràng buộc (<span class="mono">SchemaFreeExtractor</span>) và bản ép theo schema (<span class="mono">SchemaConstraintExtractor</span>).</td><td>10</td></tr>
+      <tr><td>vectorizer/</td><td style="font-family:var(--sans)">Gọi embedding model, gắn vector vào node để sau này tra theo độ giống nghĩa.</td><td>2</td></tr>
+      <tr><td>postprocessor/</td><td style="font-family:var(--sans)">Không gộp thực thể và không dọn cạnh. Nó <strong>thêm</strong> cạnh: <span class="mono">_entity_link()</span> dòng 108 tra vector top-1, nếu điểm &ge; <span class="mono">similarity_threshold</span> (mặc định 0.9) thì <span class="mono">add_edge(..., similar, ...)</span> ở 142-148. Việc duy nhất nó bỏ đi là node thiếu <span class="mono">id</span> hoặc <span class="mono">label</span>, ở <span class="mono">filter_invalid_data()</span> dòng 81.</td><td>2</td></tr>
       <tr><td>writer/</td><td style="font-family:var(--sans)">Ghi đồ thị con xuống kho thật.</td><td>3</td></tr>
-      <tr><td>mapping/</td><td style="font-family:var(--sans)">Ánh xạ cột của dữ liệu có cấu trúc sẵn thẳng vào kiểu node, không cần LLM trích.</td><td>4</td></tr>
+      <tr><td>mapping/</td><td style="font-family:var(--sans)">Mapping cột của dữ liệu có cấu trúc sẵn thẳng vào kiểu node, không cần LLM trích.</td><td>4</td></tr>
       <tr><td>external_graph/</td><td style="font-family:var(--sans)">Nạp một đồ thị có sẵn từ ngoài vào.</td><td>2</td></tr>
-      <tr><td>aligner/</td><td style="font-family:var(--sans)">Căn khớp thực thể. <strong>Không xuất hiện trong ba hàm <span class="mono">build()</span> của <span class="mono">default_chain.py</span></strong>; nơi gọi thật <span class="mono">chưa xác minh</span>.</td><td>3</td></tr>
+      <tr><td>aligner/</td><td style="font-family:var(--sans)">Entity alignment. <strong>Là code chết trong 0.8.0.</strong> Hai class <span class="mono">KAGAligner</span> và <span class="mono">SPGAligner</span> có register vào registry, nhưng grep cả repo kể cả 36 file YAML chỉ ra bốn chỗ, đều là khai báo hoặc tái xuất. <span class="mono">grep -rn "self\.aligner|aligner="</span> trả về rỗng: không chuỗi nào nhận nó, không YAML nào cấu hình nó, không nơi nào gọi nó.</td><td>3</td></tr>
     </tbody>
   </table>
   </div>
   <span class="src">từ repo · kag/builder/component/ · số file .py đếm bằng ls</span>
 
-  <p class="col">Thứ tự chạy không nằm trong tài liệu nào, nó nằm trong hàm <span class="mono">build()</span>. Toán tử <span class="mono">&gt;&gt;</span> là cách KAG nối hai mắt xích thành chuỗi. Đọc thẳng hàm đó thấy ngay mắt nào bắt buộc, mắt nào bọc trong <span class="mono">if</span>:</p>
+  <p class="col">Thứ tự chạy được <em>khai</em> trong hàm <span class="mono">build()</span>. Toán tử <span class="mono">&gt;&gt;</span> không nối hai mắt xích tại chỗ, nó dựng một <span class="mono">nx.DiGraph</span> rồi trả về một object <span class="mono">Chain</span> mới mỗi lần (<span class="mono">knext/common/base/component.py</span> dòng 120 và <span class="mono">chain.py</span> dòng 169). Đọc thẳng hàm đó thấy ngay mắt nào bắt buộc, mắt nào bọc trong <span class="mono">if</span>. <strong>Nhưng phải đọc tiếp: chuỗi không cấu trúc không hề chạy qua hàm này</strong>, xem hình sau nữa.</p>
 
 <pre><code><span class="tok-c"># kag/builder/default_chain.py, dòng 111-120</span>
     <span class="tok-k">def</span> build(self, **kwargs):
@@ -329,7 +403,8 @@
   <span class="src">từ repo · kag/builder/default_chain.py</span>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 530" role="img" aria-label="Ba chuỗi dựng chỉ mục trong default_chain.py. Chuỗi không cấu trúc bắt buộc reader và splitter rồi bốn mắt tùy chọn. Chuỗi có cấu trúc bắt buộc mapping và writer. Chuỗi đồ thị ngoài bắt buộc external_graph và writer.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 530" role="img" aria-label="Ba chuỗi dựng index trong default_chain.py. Chuỗi không cấu trúc bắt buộc reader và splitter rồi bốn mắt tùy chọn. Chuỗi có cấu trúc bắt buộc mapping và writer. Chuỗi đồ thị ngoài bắt buộc external_graph và writer.">
     <defs>
       <marker id="m4n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="m4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -347,7 +422,7 @@
     <path class="ln-a" d="M 260 76 L 366 76" marker-end="url(#m4a)"/>
     <text class="t-tiny" x="268" y="68">văn bản đã đọc</text>
     <path class="ln-a" d="M 570 76 L 676 76" marker-end="url(#m4a)"/>
-    <text class="t-tiny" x="578" y="68">các đoạn văn</text>
+    <text class="t-tiny" x="578" y="68">các chunk</text>
 
     <path class="ln-a" d="M 780 104 L 780 132 L 160 132 L 160 156" marker-end="url(#m4a)"/>
     <text class="t-tiny" x="330" y="126">đồ thị con vừa trích được, đi tiếp xuống hàng dưới</text>
@@ -390,16 +465,117 @@
     <path class="ln" d="M 570 460 L 676 460" marker-end="url(#m4n)"/>
     <text class="t-tiny" x="578" y="452">node có vector</text>
 
-    <text class="t-tiny" x="30" y="514">scanner không nằm trong build(), nó đứng trước chuỗi và bơm từng bản ghi vào · aligner không có mặt trong cả ba hàm build()</text>
+    <text class="t-tiny" x="30" y="514">scanner không nằm trong build(), nó là field của BuilderChainRunner và bơm từng bản ghi vào · aligner không có mặt ở đâu cả</text>
   </svg>
-  <figcaption><strong>Chỉ hai mắt là bắt buộc ở chuỗi chính.</strong> Hình này chứng minh một chuỗi dựng chỉ mục hợp lệ có thể không có extractor và không có writer, vì cả bốn mắt sau <span class="mono">splitter</span> đều nằm sau một câu <span class="mono">if</span>. Đó là cách cùng một lớp chuỗi phục vụ được cả kho chỉ có đoạn văn lẫn kho có đồ thị đầy đủ, chỉ bằng cách bỏ trống khóa tương ứng trong YAML.</figcaption>
+  </div>
+  <figcaption><strong>Chỉ hai mắt là bắt buộc ở chuỗi chính.</strong> Hình này chứng minh một chuỗi dựng index hợp lệ có thể không có extractor và không có writer, vì cả bốn mắt sau <span class="mono">splitter</span> đều nằm sau một câu <span class="mono">if</span>. Đó là cách cùng một lớp chuỗi phục vụ được cả kho chỉ có chunk lẫn kho có đồ thị đầy đủ, chỉ bằng cách bỏ trống khóa tương ứng trong YAML. <strong>Cảnh báo quan trọng:</strong> ở constructor dòng 84-92 thì chỉ <span class="mono">reader</span> là không có giá trị mặc định, <span class="mono">splitter</span> cũng mặc định <span class="mono">None</span> — nó bắt buộc theo kiểu ngầm lúc chạy, vì dòng 112 dùng thẳng <span class="mono">self.splitter</span> mà không có <span class="mono">if</span>. Và <span class="mono">build()</span> của riêng chuỗi này không bao giờ được gọi: xem hình kế.</figcaption>
   </figure>
 
-  <p class="col">Ai quyết định bỏ trống khóa nào? Đó là việc của <strong>bộ quản lý chỉ mục</strong>. File <span class="mono">kag/indexer/kag_index_manager.py</span> dài 793 dòng, khai một lớp gốc và sáu bản cài đặt. Mỗi bản chỉ làm đúng hai việc: trả về cấu hình extractor, và trả về cấu hình các retriever. <strong>Retriever</strong> là bộ truy hồi, thứ đi tìm lại tri thức lúc trả lời.</p>
+  <p class="col">Hình trên là thứ tự <em>được khai</em>. Thứ tự <em>thật sự chạy</em> lại nằm ở chỗ khác, và đây là cái bẫy lớn nhất của cả index builder: lớp <span class="mono">DefaultUnstructuredBuilderChain</span> ghi đè <span class="mono">invoke()</span> ở dòng 123 và không hề gọi <span class="mono">self.build()</span>. Nó tự viết luồng tay, với thứ tự bốn mắt cuối cắm cứng trong mã.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 560" role="img" aria-label="Sáu bộ quản lý chỉ mục. Năm bộ đầu mỗi bộ khai một extractor và các retriever riêng. Bộ kag_hybrid_index đứng riêng, tự khai extractor và ba retriever của mình, không gọi và không kế thừa năm bộ kia.">
-    <text class="t-head" x="24" y="34">Năm bộ chuyên một loại chỉ mục</text>
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 650" role="img" aria-label="Index builder thật sự, bốn tầng. Tầng một là script indexer.py chứ không phải lệnh kag builder. Tầng hai là runner với ThreadPoolExecutor song song cấp tài liệu. Tầng ba là chain với invoke ghi đè, không gọi build, và một ThreadPoolExecutor thứ hai song song cấp chunk. Tầng bốn là checkpoint, chỉ ghi chứ không đọc lại vì đoạn kiểm tra bị comment.">
+    <defs>
+      <marker id="m13a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m13n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <text class="t-tiny" x="24" y="22">1 · CỬA VÀO THẬT</text>
+    <rect class="bx" x="24" y="30" width="330" height="70" rx="2"/>
+    <text class="t-lbl" x="38" y="54">BuilderChainRunner.from_config(...)</text>
+    <text class="t-tiny" x="38" y="72">kag/examples/*/builder/indexer.py dòng 22</text>
+    <text class="t-tiny" x="38" y="88">đọc KAG_CONFIG.all_config["kag_builder_pipeline"]</text>
+    <rect class="bx" x="384" y="30" width="250" height="70" rx="2"/>
+    <text class="t-lbl" x="398" y="54">runner.invoke(file_path)</text>
+    <text class="t-tiny" x="398" y="72">indexer.py dòng 25</text>
+    <text class="t-tiny" x="398" y="88">chạy bằng python, không qua CLI</text>
+    <path class="ln" d="M 354 65 L 380 65" marker-end="url(#m13n)"/>
+    <rect class="bx-o" x="664" y="30" width="252" height="70" rx="2"/>
+    <text class="t-lbl" x="678" y="54">kag builder  &ne;  đường này</text>
+    <text class="t-tiny" x="678" y="72">bin/commands/builder.py 25-29:</text>
+    <text class="t-tiny" x="678" y="88">submit job cluster · cần --git_url</text>
+
+    <text class="t-tiny" x="24" y="126">2 · RUNNER · kag/builder/runner.py</text>
+    <rect class="bx" x="24" y="134" width="250" height="52" rx="2"/>
+    <text class="t-lbl" x="38" y="156">scanner.generate(input)</text>
+    <text class="t-tiny" x="38" y="174">dòng 143 · bơm từng bản ghi</text>
+    <rect class="bx-a" x="304" y="134" width="300" height="52" rx="2"/>
+    <text class="t-lbl" x="318" y="156">ThreadPoolExecutor(num_chains)</text>
+    <text class="t-tiny" x="318" y="174">dòng 142 · SONG SONG TẦNG 1 · cấp tài liệu</text>
+    <rect class="bx" x="634" y="134" width="282" height="52" rx="2"/>
+    <text class="t-lbl" x="648" y="156">chain.invoke(data, ...)</text>
+    <text class="t-tiny" x="648" y="174">dòng 130 · max_workers=num_threads_per_chain</text>
+    <path class="ln" d="M 274 160 L 300 160" marker-end="url(#m13n)"/>
+    <path class="ln-a" d="M 604 160 L 630 160" marker-end="url(#m13a)"/>
+    <path class="ln" d="M 449 100 L 449 130" marker-end="url(#m13n)"/>
+
+    <text class="t-tiny" x="24" y="212">3 · CHAIN · default_chain.py · invoke() dòng 123 GHI ĐÈ, KHÔNG gọi build()</text>
+    <rect class="bx" x="24" y="220" width="200" height="48" rx="2"/>
+    <text class="t-lbl" x="38" y="242">reader.invoke</text>
+    <text class="t-tiny" x="38" y="258">dòng 159</text>
+    <rect class="bx" x="254" y="220" width="200" height="48" rx="2"/>
+    <text class="t-lbl" x="268" y="242">splitter.invoke</text>
+    <text class="t-tiny" x="268" y="258">dòng 163 · tuần tự</text>
+    <path class="ln" d="M 224 244 L 250 244" marker-end="url(#m13n)"/>
+    <rect class="bx-a" x="484" y="220" width="432" height="48" rx="2"/>
+    <text class="t-lbl" x="498" y="242">ThreadPoolExecutor(max_workers)</text>
+    <text class="t-tiny" x="498" y="258">dòng 177 · SONG SONG TẦNG 2 · cấp chunk</text>
+    <path class="ln-a" d="M 454 244 L 480 244" marker-end="url(#m13a)"/>
+
+    <rect class="panel" x="484" y="284" width="432" height="140" rx="3"/>
+    <text class="t-tiny" x="498" y="304">TRONG MỖI LUỒNG · run_extract(chunk) · tuần tự</text>
+    <rect class="bx" x="494" y="314" width="96" height="42" rx="2"/><text class="t-tiny" x="504" y="340">extractor</text>
+    <rect class="bx" x="598" y="314" width="96" height="42" rx="2"/><text class="t-tiny" x="608" y="340">vectorizer</text>
+    <rect class="bx" x="702" y="314" width="96" height="42" rx="2"/><text class="t-tiny" x="712" y="340">post_proc</text>
+    <rect class="bx" x="806" y="314" width="96" height="42" rx="2"/><text class="t-tiny" x="816" y="340">writer</text>
+    <path class="ln" d="M 590 335 L 594 335" marker-end="url(#m13n)"/>
+    <path class="ln" d="M 694 335 L 698 335" marker-end="url(#m13n)"/>
+    <path class="ln" d="M 798 335 L 802 335" marker-end="url(#m13n)"/>
+    <text class="t-tiny" x="498" y="380">thứ tự bốn mắt này cắm cứng ở dòng 148-153,</text>
+    <text class="t-tiny" x="498" y="396">mỗi mắt bọc if node is None: continue (154-155).</text>
+    <text class="t-tiny" x="498" y="412">Cắm mắt thứ năm vào build() sẽ KHÔNG chạy.</text>
+    <path class="ln-a" d="M 700 268 L 700 282" marker-end="url(#m13a)"/>
+
+    <rect class="panel" x="24" y="284" width="430" height="140" rx="3"/>
+    <text class="t-tiny" x="38" y="304">build() VÀ &gt;&gt; ĐI ĐÂU?</text>
+    <text class="t-tiny" x="38" y="330">Chỉ chuỗi structured và domain_kg dùng chúng.</text>
+    <text class="t-tiny" x="38" y="350">Đường đó đi qua lớp gốc, builder_chain_abc.py</text>
+    <text class="t-tiny" x="38" y="366">dòng 72-76: chain = self.build(...) rồi</text>
+    <text class="t-tiny" x="38" y="382">nx.topological_sort(dag).</text>
+    <text class="t-tiny" x="38" y="406">Chuỗi không cấu trúc không đi qua DAG lần nào.</text>
+
+    <text class="t-tiny" x="24" y="450">4 · CHECKPOINT</text>
+    <rect class="bx" x="24" y="458" width="300" height="52" rx="2"/>
+    <text class="t-lbl" x="38" y="480">write_to_ckpt(item_id, ...)</text>
+    <text class="t-tiny" x="38" y="498">dòng 184 · key = generate_hash_id_and_abstract</text>
+    <rect class="bx" x="354" y="458" width="280" height="52" rx="2"/>
+    <text class="t-lbl" x="368" y="480">kag_checkpoint_{rank}_{world}.ckpt</text>
+    <text class="t-tiny" x="368" y="498">checkpointer/base.py dòng 31, 47</text>
+    <path class="ln" d="M 324 484 L 350 484" marker-end="url(#m13n)"/>
+    <rect class="bx-o" x="664" y="458" width="252" height="52" rx="2"/>
+    <text class="t-lbl" x="678" y="480">đọc lại: BỊ COMMENT</text>
+    <text class="t-tiny" x="678" y="498">runner.py dòng 145-146 · không resume</text>
+    <path class="ln-dash" d="M 634 484 L 660 484"/>
+    <path class="ln-a" d="M 641 477 L 653 491"/>
+    <path class="ln-a" d="M 653 477 L 641 491"/>
+
+    <rect class="panel" x="24" y="530" width="892" height="94" rx="3"/>
+    <text class="t-tiny" x="38" y="552">RUNNER THỨ HAI · BuilderChainStreamRunner · runner.py dòng 294</text>
+    <text class="t-tiny" x="38" y="574">Dùng ProcessPoolExecutor (dòng 392), dựng lại chain trong từng tiến trình (355-360) — đa tiến trình, không phải đa luồng.</text>
+    <text class="t-tiny" x="38" y="594">Chỉ nhánh này resume được, và chỉ ở cấp chunk: processed_chunks (339) truyền vào chain (405-410),</text>
+    <text class="t-tiny" x="38" y="614">chain lọc ở default_chain.py dòng 169 bằng chunk.hash_key not in processed_chunk_keys.</text>
+  </svg>
+  </div>
+  <figcaption><strong>Ba điều hình này chứng minh mà đọc <span class="mono">build()</span> không thấy.</strong> Một, cửa vào build local là script <span class="mono">indexer.py</span> gọi <span class="mono">BuilderChainRunner</span>, không phải lệnh <span class="mono">kag builder</span> — lệnh đó submit job lên cluster và bắt buộc <span class="mono">--git_url</span>. Hai, song song có hai tầng lồng nhau, tổng số luồng là <span class="mono">num_chains</span> nhân <span class="mono">num_threads_per_chain</span>, không phải một tầng. Ba, file ckpt vẫn sinh ra bình thường nhưng runner mặc định không bao giờ đọc nó, nên chạy lại là trích lại từ đầu và tốn lại đúng bấy nhiêu tiền LLM.</figcaption>
+  </figure>
+
+  <p class="col">Ai quyết định bỏ trống khóa nào? Đó là việc của <strong>index manager</strong>. File <span class="mono">kag/indexer/kag_index_manager.py</span> dài 793 dòng, khai một lớp gốc và sáu bản cài đặt. Mỗi bản làm ba việc: trả về cấu hình extractor, trả về cấu hình các retriever, và khai <span class="mono">schema</span>. <strong>Retriever</strong> là thứ đi tìm lại tri thức lúc solver chạy. Khóa <span class="mono">schema</span> không phải trang trí: <span class="mono">knext/command/sub_command/schema.py</span> dòng 40-49 duyệt <span class="mono">KAGIndexManager.list_available()</span>, lấy <span class="mono">schema</span> của từng bộ rồi nạp làm schema SPG thật qua <span class="mono">SPGSchemaMarkLang</span>.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 560" role="img" aria-label="Sáu index manager. Năm bộ đầu mỗi bộ khai một extractor và các retriever riêng. Bộ kag_hybrid_index đứng riêng, tự khai extractor và ba retriever của mình, không gọi và không kế thừa năm bộ kia.">
+    <text class="t-head" x="24" y="34">Năm bộ chuyên một loại index</text>
     <text class="t-head" x="560" y="34">Bộ thứ sáu</text>
 
     <rect class="bx" x="24" y="48" width="380" height="88" rx="2"/>
@@ -447,27 +623,29 @@
     <text class="t-tiny" x="574" y="392">bất kỳ dòng mã nào trong file.</text>
 
     <text class="t-tiny" x="560" y="446">Cả sáu cùng kế thừa lớp gốc KAGIndexManager,</text>
-    <text class="t-tiny" x="560" y="464">dòng 18, và cùng đăng ký vào sổ của lớp đó.</text>
+    <text class="t-tiny" x="560" y="464">dòng 18, và cùng register vào registry của lớp đó.</text>
     <text class="t-tiny" x="560" y="482">Quan hệ anh em, không phải quan hệ chứa nhau.</text>
   </svg>
-  <figcaption><strong>Bộ lai không gói năm bộ kia.</strong> Hình này chứng minh <span class="mono">kag_hybrid_index</span> là anh em chứ không phải cha của năm bộ còn lại: nó tự khai một extractor và ba retriever của riêng nó, và trong cả file không có dòng nào gọi tới <span class="mono">AtomicIndexManager</span>, <span class="mono">ChunkIndexManager</span>, <span class="mono">TableIndexManager</span>, <span class="mono">SummaryIndexManager</span> hay <span class="mono">OutlineIndexManager</span>. Chỗ duy nhất khiến người đọc dễ tưởng nó gộp cả nhóm là hàm <span class="mono">schema</span> của nó, nơi có một chuỗi mô tả nhắc tên các kiểu node Chunk, KnowledgeUnit, AtomicQuery. Chuỗi đó chỉ để hiển thị, không phải lời gọi.</figcaption>
+  </div>
+  <figcaption><strong>Bộ lai không gói năm bộ kia.</strong> Hình này chứng minh <span class="mono">kag_hybrid_index</span> là anh em chứ không phải cha của năm bộ còn lại: nó tự khai một extractor và ba retriever của riêng nó, và trong cả file không có dòng nào gọi tới <span class="mono">AtomicIndexManager</span>, <span class="mono">ChunkIndexManager</span>, <span class="mono">TableIndexManager</span>, <span class="mono">SummaryIndexManager</span> hay <span class="mono">OutlineIndexManager</span>. Chỗ khiến người đọc dễ tưởng nó gộp cả nhóm là property <span class="mono">schema</span> dòng 575-604, nơi nhắc tên các kiểu node Chunk, KnowledgeUnit, AtomicQuery — đó là <em>khai kiểu node</em>, không phải lời gọi manager khác, nhưng cũng không phải trang trí vì nó được nạp thành schema SPG thật. Chỗ thứ hai là <span class="mono">vector_chunk_retriever</span> lồng ở dòng 780, trùng type với cái <span class="mono">chunk_index</span> khai ở 263: đó là lặp cấu hình inline, không phải composition. Việc ghép nhiều bộ lại nằm ngoài file này, ở <span class="mono">kag/solver/main_solver.py</span> dòng 172-187, nơi solver duyệt <span class="mono">index_list</span> trong config rồi nối các cấu hình retriever lại. <strong>Bẫy đặt tên:</strong> file <span class="mono">kag/indexer/kag_index.py</span> có một registry <em>khác</em> (<span class="mono">IndexABC</span>) dùng trùng chuỗi <span class="mono">chunk_index</span>, <span class="mono">summary_index</span>, <span class="mono">atomic_query_index</span>, <span class="mono">outline_index</span>. Cấu hình nhầm registry là lỗi câm, không báo gì.</figcaption>
   </figure>
 </section>
 
 <!-- ============ 04 ============ -->
 <section id="s4">
-  <div class="sec-head"><span class="sec-num">04</span><h2>Đường trả lời</h2></div>
-  <p class="sec-sub">Bảy pipeline đăng ký trong <span class="mono">kag/solver/pipeline/</span>, sáu file cấu hình dựng sẵn trong <span class="mono">kag/solver/pipelineconf/</span>. Khác nhau ở hai chỗ: có nhờ LLM lập kế hoạch không, và có lặp không.</p>
+  <div class="sec-head"><span class="sec-num">04</span><h2>Solver</h2></div>
+  <p class="sec-sub">Bảy pipeline register trong <span class="mono">kag/solver/pipeline/</span>, sáu file cấu hình dựng sẵn trong <span class="mono">kag/solver/pipelineconf/</span>. Khác nhau ở hai chỗ: có nhờ LLM planner không, và có lặp không.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 470" role="img" aria-label="Bảy pipeline trả lời xếp trên hai trục. Trục ngang là có gọi LLM để lập kế hoạch hay không, trục dọc là có lặp hay không. Bốn pipeline nằm ở góc không LLM một lượt, hai pipeline ở góc có LLM một lượt, riêng kag_iterative_pipeline nằm ở góc có LLM và có lặp.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 470" role="img" aria-label="Bảy pipeline solver xếp trên hai trục. Trục ngang là có gọi LLM planner hay không, trục dọc là có lặp hay không. Bốn pipeline nằm ở góc không LLM một lượt, hai pipeline ở góc có LLM một lượt, riêng kag_iterative_pipeline nằm ở góc có LLM và có lặp.">
     <defs>
       <marker id="m6n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="m6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
     </defs>
 
     <path class="ln" d="M 92 420 L 910 420" marker-end="url(#m6n)"/>
-    <text class="t-tiny" x="640" y="440">CÓ GỌI LLM ĐỂ LẬP KẾ HOẠCH</text>
+    <text class="t-tiny" x="640" y="440">CÓ GỌI LLM PLANNER</text>
     <path class="ln" d="M 92 420 L 92 44" marker-end="url(#m6n)"/>
     <text class="t-tiny" x="104" y="38">CÓ LẶP</text>
     <path class="ln-dash" d="M 420 420 L 420 44"/>
@@ -486,15 +664,16 @@
 
     <rect class="bx" x="112" y="342" width="272" height="54" rx="2"/>
     <text class="t-lbl" x="126" y="364">naive_generation_pipeline</text>
-    <text class="t-tiny" x="126" y="384">không có bước lập kế hoạch nào</text>
+    <text class="t-tiny" x="126" y="384">không có bước planner nào</text>
 
-    <rect class="bx-o" x="450" y="278" width="272" height="54" rx="2"/>
+    <rect class="bx-o" x="450" y="272" width="272" height="70" rx="2"/>
     <text class="t-lbl" x="464" y="300">kag_static_pipeline</text>
     <text class="t-tiny" x="464" y="320">max_iteration mặc định 1 · dòng 45</text>
+    <text class="t-tiny" x="464" y="336">docstring dòng 37 ghi 10 · mã ghi 1</text>
 
     <rect class="bx-o" x="450" y="342" width="272" height="54" rx="2"/>
     <text class="t-lbl" x="464" y="364">mcp_pipeline</text>
-    <text class="t-tiny" x="464" y="384">tùy planner được tiêm vào</text>
+    <text class="t-tiny" x="464" y="384">MÃ CHẾT · không đường nào chạy tới</text>
 
     <rect class="bx-a" x="450" y="72" width="272" height="54" rx="2"/>
     <text class="t-lbl" x="464" y="94">kag_iterative_pipeline</text>
@@ -506,11 +685,12 @@
     <text class="t-tiny" x="598" y="222">cả chu trình chứ không</text>
     <text class="t-tiny" x="598" y="238">lặp từng bước</text>
 
-    <text class="t-tiny" x="112" y="60">KHÔNG LLM LẬP KẾ HOẠCH · MỘT LƯỢT</text>
+    <text class="t-tiny" x="112" y="60">KHÔNG LLM PLANNER · MỘT LƯỢT</text>
     <text class="t-tiny" x="750" y="94">LẶP TỪNG BƯỚC</text>
     <text class="t-tiny" x="750" y="300">MỘT LƯỢT</text>
   </svg>
-  <figcaption><strong>Bốn trong bảy cái không nhờ LLM lập kế hoạch.</strong> Hình này chứng minh &ldquo;pipeline&rdquo; trong KAG không đồng nghĩa với &ldquo;có suy luận&rdquo;. Bốn pipeline bên trái dựng kế hoạch bằng mã cứng, chúng vẫn gọi LLM nhưng chỉ ở bước sinh câu trả lời cuối. Lưu ý <span class="mono">mcp_pipeline</span> có đăng ký tên nhưng không file YAML nào trong sáu file mẫu trỏ tới nó; file <span class="mono">mcp.yaml</span> dùng <span class="mono">kag_static_pipeline</span> với planner <span class="mono">mcp_planner</span>. Nơi nào dùng lớp <span class="mono">MCPPipeline</span> thật thì <span class="mono">chưa xác minh</span>.</figcaption>
+  </div>
+  <figcaption><strong>Bốn trong bảy cái không nhờ LLM planner.</strong> Hình này chứng minh &ldquo;pipeline&rdquo; trong KAG không đồng nghĩa với &ldquo;có reasoning&rdquo;. Bốn pipeline bên trái dựng plan bằng mã cứng, chúng vẫn gọi LLM nhưng chỉ ở bước sinh câu trả lời cuối. Lưu ý <span class="mono">mcp_pipeline</span> là <strong>mã chết</strong>. Không file YAML nào đặt <span class="mono">type: mcp_pipeline</span>; file <span class="mono">mcp.yaml</span> dùng <span class="mono">kag_static_pipeline</span> với planner <span class="mono">mcp_planner</span>, còn dòng <span class="mono">pipeline_name: mcp_pipeline</span> ở đầu file chỉ là tên khối cấu hình. Chỗ duy nhất so chuỗi đó là <span class="mono">kag/solver/main_solver.py:119</span>, và nó chỉ tiêm danh sách <span class="mono">mcp_executor</span> vào pipeline chứ không dựng lớp <span class="mono">MCPPipeline</span>. Thêm một chỗ mã và tài liệu cãi nhau: docstring <span class="mono">kag_static_pipeline.py:37</span> ghi <span class="mono">max_iteration</span> mặc định 10, mã ở dòng 45 ghi 1.</figcaption>
   </figure>
 
   <div class="tw">
@@ -528,10 +708,11 @@
   </div>
   <span class="src">từ repo · kag/solver/pipelineconf/</span>
 
-  <p class="col">Bây giờ theo một câu hỏi đi hết vòng đời của nó, đọc thẳng hàm <span class="mono">ainvoke</span> của <span class="mono">kag_static_pipeline.py</span>, dòng 112-177. Ở đây xuất hiện hai khái niệm mới. <strong>DAG</strong> là đồ thị có hướng không có chu trình, dùng để nói việc nào phải xong trước việc nào. <strong>Planner</strong> là bộ lập kế hoạch, thứ biến một câu hỏi thành danh sách việc cần làm.</p>
+  <p class="col">Bây giờ theo một câu hỏi đi hết vòng đời của nó, đọc thẳng hàm <span class="mono">ainvoke</span> của <span class="mono">kag_static_pipeline.py</span>, dòng 112-177. Ở đây xuất hiện hai khái niệm mới. <strong>DAG</strong> là đồ thị có hướng không có chu trình, dùng để nói việc nào phải xong trước việc nào. <strong>Planner</strong> là thứ biến một câu hỏi thành danh sách việc cần làm.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 520" role="img" aria-label="Vòng đời một câu hỏi trong kag_static_pipeline: lập kế hoạch bằng planner, biến mỗi việc thành một đỉnh của đồ thị, chia đồ thị thành các tầng topo, chạy song song từng tầng bằng asyncio gather, rồi sinh câu trả lời, và quay lại lập kế hoạch nếu chưa xong.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 520" role="img" aria-label="Vòng đời một câu hỏi trong kag_static_pipeline: gọi planner, biến mỗi việc thành một đỉnh của đồ thị, chia đồ thị thành các tầng topo, chạy song song từng tầng bằng asyncio gather, rồi sinh câu trả lời, và quay lại planner nếu chưa xong.">
     <defs>
       <marker id="m7n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="m7a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -544,18 +725,18 @@
 
     <rect class="bx-a" x="40" y="134" width="300" height="64" rx="2"/>
     <text class="t-lbl" x="54" y="158">planning()</text>
-    <text class="t-tiny" x="54" y="176">dòng 131 gọi xuống dòng 80-85</text>
-    <text class="t-tiny" x="54" y="192">planner.ainvoke · CÓ GỌI LLM</text>
+    <text class="t-tiny" x="54" y="176">dòng 131 gọi planning() 68-86</text>
+    <text class="t-tiny" x="54" y="192">lời gọi LLM planner.ainvoke ở 80-85</text>
 
     <rect class="bx" x="40" y="242" width="300" height="64" rx="2"/>
     <text class="t-lbl" x="54" y="266">context.add_task &rarr; get_dag()</text>
-    <text class="t-tiny" x="54" y="284">context.py dòng 82-108</text>
+    <text class="t-tiny" x="54" y="284">add_task context.py:17, gọi ở 134 · get_dag 82-108</text>
     <text class="t-tiny" x="54" y="300">dựng networkx.DiGraph</text>
 
     <rect class="bx" x="40" y="350" width="300" height="64" rx="2"/>
     <text class="t-lbl" x="54" y="374">gen_task(group=True)</text>
     <text class="t-tiny" x="54" y="392">context.py dòng 110-133</text>
-    <text class="t-tiny" x="54" y="408">asyncio.gather · dòng 136-144</text>
+    <text class="t-tiny" x="54" y="408">vòng tầng dòng 136 · asyncio.gather 137-144</text>
 
     <rect class="bx-g" x="40" y="450" width="300" height="56" rx="2"/>
     <text class="t-lbl" x="54" y="474">generator.ainvoke</text>
@@ -566,17 +747,18 @@
     <path class="ln" d="M 190 198 L 190 238" marker-end="url(#m7n)"/>
     <text class="t-tiny" x="202" y="224">danh sách Task, mỗi Task ghi id cha</text>
     <path class="ln" d="M 190 306 L 190 346" marker-end="url(#m7n)"/>
-    <text class="t-tiny" x="202" y="332">đồ thị việc đã dựng xong</text>
+    <text class="t-tiny" x="202" y="332">task DAG đã dựng xong</text>
     <path class="ln" d="M 190 414 L 190 446" marker-end="url(#m7n)"/>
     <text class="t-tiny" x="202" y="438">kết quả từng việc nằm trong context</text>
 
     <path class="ln-a" d="M 340 478 L 396 478 L 396 166 L 344 166" marker-end="url(#m7a)"/>
-    <text class="t-tiny" x="408" y="470">nếu câu trả lời chứa "unknown"</text>
-    <text class="t-tiny" x="408" y="486">hoặc finish_judger trả False thì</text>
-    <text class="t-tiny" x="408" y="502">lập lại kế hoạch · dòng 158-173</text>
+    <text class="t-tiny" x="408" y="454">nếu trả lời chứa "unknown" hoặc</text>
+    <text class="t-tiny" x="408" y="470">finish_judger trả False thì lập lại · 158-173</text>
+    <text class="t-tiny" x="408" y="492">NHƯNG mặc định max_iteration=1 nên</text>
+    <text class="t-tiny" x="408" y="508">num_retry=0, đường quay lui này KHÔNG chạy</text>
 
     <rect class="panel" x="470" y="34" width="440" height="386" rx="3"/>
-    <text class="t-head" x="484" y="26">Đồ thị việc chia thành tầng để chạy song song</text>
+    <text class="t-head" x="484" y="26">Task DAG chia thành tầng để chạy song song</text>
 
     <text class="t-tiny" x="490" y="64">TẦNG 1 · KHÔNG PHỤ THUỘC AI</text>
     <rect class="bx" x="490" y="76" width="180" height="48" rx="2"/>
@@ -600,13 +782,15 @@
     <text class="t-tiny" x="490" y="386">Lớp Task nằm ở planner_abc.py dòng 24,</text>
     <text class="t-tiny" x="490" y="404">quan hệ cha con giữ trong parents và children.</text>
   </svg>
-  <figcaption><strong>Song song đi theo tầng, không phải theo việc.</strong> Hình này chứng minh KAG không chạy từng việc một rồi mới xét việc sau: nó cắt đồ thị thành các tầng bằng <span class="mono">nx.topological_generations</span>, và mọi việc trong cùng một tầng được thả vào một lần <span class="mono">asyncio.gather</span>. Đó là lý do một câu hỏi hai vế độc lập chỉ tốn thời gian bằng vế chậm hơn. Vòng ngoài cùng là vòng <span class="mono">while</span> dòng 129, nó vứt cả kế hoạch cũ và lập lại từ đầu, chứ không sửa kế hoạch cũ.</figcaption>
+  </div>
+  <figcaption><strong>Song song đi theo tầng, không phải theo việc.</strong> Hình này chứng minh KAG không chạy từng việc một rồi mới xét việc sau: nó cắt đồ thị thành các tầng bằng <span class="mono">nx.topological_generations</span>, và mọi việc trong cùng một tầng được thả vào một lần <span class="mono">asyncio.gather</span>. Đó là lý do một câu hỏi hai vế độc lập chỉ tốn thời gian bằng vế chậm hơn. Vòng ngoài cùng là vòng <span class="mono">while</span> dòng 129, nó vứt cả plan cũ và lập lại từ đầu, chứ không sửa plan cũ: dòng 130 dựng <span class="mono">Context()</span> mới tinh <em>bên trong</em> vòng, nên mọi task và <span class="mono">variables_graph</span> của lượt trước mất sạch. Một điều nữa hình không nói hết: với <span class="mono">max_iteration = 1</span> mặc định thì <span class="mono">num_retry = 0</span> (dòng 127), khối kiểm ở 158-162 không bao giờ chạy, nên <span class="mono">finish_judger</span> cũng không bao giờ được gọi, và nếu câu trả lời là <span class="mono">unknown</span> thì nó vẫn được trả về nguyên vẹn chứ không báo lỗi.</figcaption>
   </figure>
 
   <p class="col">Năm planner nằm trong <span class="mono">kag/solver/planner/</span>. Chúng khác nhau đúng một điểm: ai là người quyết bước kế tiếp.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 440" role="img" aria-label="Năm planner và người quyết bước kế tiếp của từng cái: hai planner tĩnh để LLM sinh trọn kế hoạch một lần, kag_model_planner để LLM sinh một lần rồi mã tự nối thành chuỗi tuần tự, kag_iterative_planner để LLM quyết từng bước, mcp_planner không hỏi LLM.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 440" role="img" aria-label="Năm planner và người quyết bước kế tiếp của từng cái: hai planner tĩnh để LLM sinh trọn plan một lần, kag_model_planner để LLM sinh một lần rồi mã tự nối thành chuỗi tuần tự, kag_iterative_planner để LLM quyết từng bước, mcp_planner không hỏi LLM.">
     <defs>
       <marker id="m8a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
       <marker id="m8n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
@@ -617,7 +801,7 @@
 
     <rect class="bx" x="30" y="48" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="44" y="72">kag_static_planner</text>
-    <text class="t-tiny" x="44" y="92">KAGStaticPlanner · dòng 19</text>
+    <text class="t-tiny" x="44" y="92">KAGStaticPlanner · register dòng 19</text>
     <text class="t-tiny" x="44" y="108">ainvoke dòng 150-172</text>
     <rect class="bx-a" x="520" y="48" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="534" y="72">LLM, một lần duy nhất</text>
@@ -628,7 +812,7 @@
 
     <rect class="bx" x="30" y="124" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="44" y="148">lf_kag_static_planner</text>
-    <text class="t-tiny" x="44" y="168">KAGLFStaticPlanner · dòng 21</text>
+    <text class="t-tiny" x="44" y="168">KAGLFStaticPlanner · register dòng 21</text>
     <text class="t-tiny" x="44" y="184">ainvoke dòng 148-170</text>
     <rect class="bx-a" x="520" y="124" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="534" y="148">LLM, một lần, dạng logical form</text>
@@ -639,18 +823,18 @@
 
     <rect class="bx" x="30" y="200" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="44" y="224">kag_model_planner</text>
-    <text class="t-tiny" x="44" y="244">KAGModelPlanner · dòng 68</text>
+    <text class="t-tiny" x="44" y="244">KAGModelPlanner · register dòng 68</text>
     <text class="t-tiny" x="44" y="260">ainvoke dòng 145-209</text>
     <rect class="bx-o" x="520" y="200" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="534" y="224">LLM sinh, rồi mã tự nối</text>
     <text class="t-tiny" x="534" y="244">parse ra nhiều logical form, mã dựng</text>
-    <text class="t-tiny" x="534" y="260">chuỗi phụ thuộc tuần tự · dòng 196-208</text>
+    <text class="t-tiny" x="534" y="260">chuỗi phụ thuộc tuần tự · dòng 191-209</text>
     <path class="ln-a" d="M 420 232 L 516 232" marker-end="url(#m8a)"/>
     <text class="t-tiny" x="426" y="224">1 lần rồi cắt</text>
 
     <rect class="bx" x="30" y="276" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="44" y="300">kag_iterative_planner</text>
-    <text class="t-tiny" x="44" y="320">KAGIterativePlanner · dòng 18</text>
+    <text class="t-tiny" x="44" y="320">KAGIterativePlanner · register dòng 18</text>
     <text class="t-tiny" x="44" y="336">ainvoke dòng 86-109 · is_static False</text>
     <rect class="bx-a" x="520" y="276" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="534" y="300">LLM, từng bước một</text>
@@ -661,7 +845,7 @@
 
     <rect class="bx" x="30" y="352" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="44" y="376">mcp_planner</text>
-    <text class="t-tiny" x="44" y="396">MCPPlanner · dòng 7</text>
+    <text class="t-tiny" x="44" y="396">MCPPlanner · register dòng 7</text>
     <text class="t-tiny" x="44" y="412">ainvoke dòng 17-29</text>
     <rect class="bx" x="520" y="352" width="390" height="64" rx="2"/>
     <text class="t-lbl" x="534" y="376">mã, không hỏi ai</text>
@@ -670,38 +854,40 @@
     <path class="ln" d="M 420 384 L 516 384" marker-end="url(#m8n)"/>
     <text class="t-tiny" x="426" y="376">không hỏi LLM</text>
   </svg>
-  <figcaption><strong>&ldquo;Tĩnh&rdquo; nói về số lần hỏi LLM, không nói về việc có hỏi hay không.</strong> Hình này chứng minh điểm hay bị nhầm: planner tĩnh vẫn gọi LLM, chỉ là gọi đúng một lần rồi chốt kế hoạch. Planner lặp thì gọi lại ở mỗi bước và được xem kết quả các bước trước. Bản thân planner lặp không tự lặp, vòng lặp nằm ở pipeline gọi nó.</figcaption>
+  </div>
+  <figcaption><strong>&ldquo;Tĩnh&rdquo; nói về số lần hỏi LLM, không nói về việc có hỏi hay không.</strong> Hình này chứng minh điểm hay bị nhầm: planner tĩnh vẫn gọi LLM, chỉ là gọi đúng một lần rồi chốt plan. Planner lặp thì gọi lại ở mỗi bước và được xem kết quả các bước trước. Bản thân planner lặp không tự lặp, vòng lặp nằm ở pipeline gọi nó.</figcaption>
   </figure>
 
-  <p class="col">Cuối cùng là <strong>executor</strong>, tức bộ thực thi, thứ thật sự làm việc đã được giao. Câu hỏi đáng quan tâm nhất khi đọc nhóm này: cái nào chạm vào kho đồ thị thật, cái nào chỉ nghịch bộ nhớ tạm.</p>
+  <p class="col">Cuối cùng là <strong>executor</strong>, thứ thật sự làm việc đã được giao. Câu hỏi đáng quan tâm nhất khi đọc nhóm này: cái nào chạm vào kho đồ thị thật, cái nào chỉ nghịch bộ nhớ tạm.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 480" role="img" aria-label="Hai nhóm executor. Nhóm truy hồi chạm vào kho đồ thị thật qua GraphApiABC. Các nhóm suy diễn, kết xuất, toán, MCP và finish chỉ đọc ghi KgGraph trong bộ nhớ.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 480" role="img" aria-label="Hai nhóm executor. Nhóm retrieval chạm vào kho đồ thị thật qua GraphApiABC. Các nhóm deduce, output, toán, MCP và finish chỉ đọc ghi KgGraph trong bộ nhớ.">
     <defs>
       <marker id="m9a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
       <marker id="m9g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
     </defs>
 
     <rect class="panel" x="20" y="40" width="430" height="288" rx="3"/>
-    <text class="t-head" x="34" y="32">CHẠM KHO ĐỒ THỊ THẬT</text>
+    <text class="t-head" x="34" y="32">RETRIEVER · bốn cái ngang hàng, không phải executor</text>
     <rect class="bx-a" x="36" y="60" width="398" height="56" rx="2"/>
-    <text class="t-lbl" x="50" y="82">kg_cs · default_kg_cs_retriever</text>
-    <text class="t-tiny" x="50" y="102">dùng entity_linking và path_select</text>
+    <text class="t-lbl" x="50" y="82">kg_fr_open_spg · kg_fr_retriever.py:26</text>
+    <text class="t-tiny" x="50" y="102">ĐÂY mới là nhánh PageRank · 57-61, gọi ở 110</text>
     <rect class="bx-a" x="36" y="128" width="398" height="56" rx="2"/>
-    <text class="t-lbl" x="50" y="150">kg_fr · default_kg_fr_retriever</text>
-    <text class="t-tiny" x="50" y="170">cùng hai công cụ trên, kiểu dò mờ</text>
-    <rect class="bx-a" x="36" y="196" width="398" height="56" rx="2"/>
-    <text class="t-lbl" x="50" y="218">rc · nhánh ppr_chunk_retriever</text>
-    <text class="t-tiny" x="50" y="238">gọi calculate_pagerank_scores</text>
+    <text class="t-lbl" x="50" y="150">kg_cs_open_spg · kg_cs_retriever.py:22</text>
+    <text class="t-tiny" x="50" y="170">entity_linking + path_select · không PageRank</text>
+    <rect class="bx" x="36" y="196" width="398" height="56" rx="2"/>
+    <text class="t-lbl" x="50" y="218">rc_open_spg · rc_retriever.py:18</text>
+    <text class="t-tiny" x="50" y="238">chỉ bọc vector_chunk_retriever · 48-58</text>
     <rect class="bx" x="36" y="264" width="398" height="52" rx="2"/>
-    <text class="t-lbl" x="50" y="286">rc · nhánh vector_chunk_retriever</text>
-    <text class="t-tiny" x="50" y="304">CHỈ TRA VECTOR, KHÔNG GỌI GRAPH API</text>
+    <text class="t-lbl" x="50" y="286">vector_chunk_retriever · dòng 27</text>
+    <text class="t-tiny" x="50" y="304">chỉ search_api.search_vector · 68 và 75</text>
 
     <rect class="panel" x="490" y="40" width="430" height="288" rx="3"/>
     <text class="t-head" x="504" y="32">KHÔNG CHẠM KHO ĐỒ THỊ</text>
     <rect class="bx" x="506" y="60" width="398" height="44" rx="2"/>
     <text class="t-lbl" x="520" y="80">kag_deduce_executor</text>
-    <text class="t-tiny" x="520" y="96">suy diễn bằng LLM trên bộ nhớ tạm</text>
+    <text class="t-tiny" x="520" y="96">deduce bằng LLM trên bộ nhớ tạm</text>
     <rect class="bx" x="506" y="114" width="398" height="44" rx="2"/>
     <text class="t-lbl" x="520" y="134">kag_output_executor</text>
     <text class="t-tiny" x="520" y="150">gom kết quả các việc cha lại</text>
@@ -716,18 +902,71 @@
     <text class="t-tiny" x="520" y="312">không làm gì, chỉ báo hiệu dừng</text>
 
     <rect class="bx-a" x="60" y="392" width="370" height="56" rx="2"/>
-    <text class="t-lbl" x="74" y="414">GraphApiABC · openspg_graph_api</text>
-    <text class="t-tiny" x="74" y="434">kho đồ thị thật, nằm ngoài tiến trình Python</text>
+    <text class="t-lbl" x="74" y="414">GraphApiABC · common/tools/graph_api/</text>
+    <text class="t-tiny" x="74" y="434">hai bản: openspg (ra REST) và memory (igraph, trong tiến trình)</text>
     <rect class="bx-g" x="510" y="392" width="370" height="56" rx="2"/>
     <text class="t-lbl" x="524" y="414">context.variables_graph · KgGraph</text>
     <text class="t-tiny" x="524" y="434">dict trong bộ nhớ, chết khi trả lời xong</text>
 
-    <path class="ln-a" d="M 245 252 L 245 388" marker-end="url(#m9a)"/>
-    <text class="t-tiny" x="256" y="356">gọi pagerank, tra thuộc tính node</text>
+    <path class="ln-a" d="M 150 116 L 150 336 L 150 388" marker-end="url(#m9a)"/>
+    <text class="t-tiny" x="34" y="352">Bốn cái trên register dưới RetrieverABC, chúng là công cụ BÊN TRONG</text>
+    <text class="t-tiny" x="34" y="368">kag_hybrid_retrieval_executor, không đứng ngang hàng với cột phải.</text>
+    <text class="t-tiny" x="164" y="384">chỉ nhánh kg_fr gọi pagerank</text>
     <path class="ln-g" d="M 705 328 L 705 388" marker-end="url(#m9g)"/>
     <text class="t-tiny" x="716" y="360">chỉ đọc ghi trong bộ nhớ</text>
   </svg>
-  <figcaption><strong>Chỉ họ truy hồi mới đụng vào kho.</strong> Hình này chứng minh ranh giới thật: mọi executor còn lại làm việc trên <span class="mono">context.variables_graph</span>, một cấu trúc trong bộ nhớ khai ở <span class="mono">kag/interface/common/model/retriever_data.py</span>, chứ không gửi truy vấn nào ra kho. Ngay trong họ truy hồi cũng có chia đôi: nhánh PageRank gọi kho, nhánh vector thuần thì không. Thư mục <span class="mono">retriever/web_search/</span> chỉ có <span class="mono">__init__.py</span> rỗng, có bản cài đặt tìm kiếm web ở chỗ khác hay không thì <span class="mono">chưa xác minh</span>. Thân các file <span class="mono">kag_flow.py</span>, <span class="mono">kag_merger.py</span>, <span class="mono">kag_lf_rewriter.py</span> cũng <span class="mono">chưa xác minh</span> tới từng dòng.</figcaption>
+  </div>
+  <figcaption><strong>Chỉ nhóm retriever mới đụng vào kho, và PageRank không nằm ở chỗ người ta hay đoán.</strong> Bốn hộp bên trái register dưới <span class="mono">RetrieverABC</span> trong <span class="mono">kag/common/tools/algorithm_tool/</span>, không phải dưới <span class="mono">ExecutorABC</span>: chúng là công cụ được gọi bên trong <span class="mono">kag_hybrid_retrieval_executor</span>. PageRank thuộc <span class="mono">kg_fr</span> chứ không thuộc <span class="mono">rc</span>: <span class="mono">kg_fr_retriever.py</span> dựng <span class="mono">ppr_chunk_retriever_tool</span> ở 57-61 và gọi ở 110, còn <span class="mono">rc_retriever.py:48-58</span> chỉ gọi <span class="mono">vector_chunk_retriever</span>, trong file không có một chữ <span class="mono">pagerank</span> nào. Một cái bẫy tên nữa: hai file <span class="mono">default_kg_cs_retriever.py</span> và <span class="mono">default_kg_fr_retriever.py</span> nằm dưới <span class="mono">kag_retriever/kag_component/</span> register tên <span class="mono">kg_cs_open_spg_legacy</span> và <span class="mono">kg_fr_open_spg_legacy</span>, và register dưới <span class="mono">FlowComponent</span> chứ không phải <span class="mono">RetrieverABC</span> — tên file không phải tên register. Mọi executor còn lại làm việc trên <span class="mono">context.variables_graph</span>, lớp <span class="mono">KgGraph</span> khai ở <span class="mono">kag/interface/common/model/retriever_data.py:617</span>, chứ không gửi truy vấn nào ra kho. Hai chỗ trước ghi <span class="mono">chưa xác minh</span> nay đã đọc tới: thư mục <span class="mono">retriever/web_search/</span> đúng là chỉ có <span class="mono">__init__.py</span> rỗng vì KAG làm tìm kiếm web qua MCP server ngoài, xem <span class="mono">kag/examples/google_web_search_mcp/</span>; còn ba file kia thì <span class="mono">kag_flow.py:41</span> là lớp thường không register, tự parse một chuỗi DSL thành đồ thị riêng, <span class="mono">kag_lf_rewriter.py:20</span> là <span class="mono">Registrable</span> với bản cài duy nhất <span class="mono">kag_spo_lf</span> ở dòng 34, và <span class="mono">kag_merger.py:72</span> register tên <span class="mono">kg_merger</span> dưới <span class="mono">FlowComponent</span> — cái tên <span class="mono">kag_merger</span> mà các file YAML dùng lại là một register khác hẳn, ở <span class="mono">kag/common/tools/algorithm_tool/kag_retrieve_output_merger.py:23</span>.</figcaption>
+  </figure>
+
+  <p class="col">Còn một câu hỏi mà cả section này chưa trả lời thẳng: <strong>KAG có tự cài thuật toán đồ thị nào không, hay chỉ đẩy hết xuống kho?</strong> Lần theo đúng một chuỗi lời gọi, từ retriever xuống tới chỗ con số PageRank thật sự được tính, thì thấy câu trả lời là &ldquo;cả hai, tùy kho đang dùng&rdquo;.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 470" role="img" aria-label="Chuỗi gọi Personalized PageRank trong KAG. Retriever kg_fr gọi ppr_chunk_retriever, cái này gọi graph_api.calculate_pagerank_scores, rồi rẽ hai nhánh: bản OpenSPG gửi REST ra máy chủ và KAG không tính gì, bản memory gọi igraph personalized_pagerank ngay trong tiến trình Python.">
+    <defs>
+      <marker id="m14a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m14n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+      <marker id="m14g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <rect class="bx" x="250" y="26" width="440" height="50" rx="2"/>
+    <text class="t-lbl" x="264" y="48">kg_fr_retriever.py dòng 110</text>
+    <text class="t-tiny" x="264" y="66">self.ppr_chunk_retriever_tool.invoke(task, start_entities, top_k)</text>
+
+    <rect class="bx" x="250" y="102" width="440" height="66" rx="2"/>
+    <text class="t-lbl" x="264" y="124">ppr_chunk_retriever.py</text>
+    <text class="t-tiny" x="264" y="142">dòng 279 gọi calculate_pagerank_scores của chính nó (dòng 67)</text>
+    <text class="t-tiny" x="264" y="158">dòng 99 chuyển tiếp xuống self.graph_api.calculate_pagerank_scores</text>
+
+    <rect class="bx-a" x="250" y="194" width="440" height="50" rx="2"/>
+    <text class="t-lbl" x="264" y="216">GraphApiABC.calculate_pagerank_scores</text>
+    <text class="t-tiny" x="264" y="234">graph_api_abc.py dòng 65 · tới đây mới rẽ đôi</text>
+
+    <path class="ln" d="M 470 76 L 470 98" marker-end="url(#m14n)"/>
+    <path class="ln" d="M 470 168 L 470 190" marker-end="url(#m14n)"/>
+    <path class="ln-a" d="M 470 244 L 470 262 L 215 262 L 215 288" marker-end="url(#m14a)"/>
+    <path class="ln-g" d="M 470 244 L 470 262 L 725 262 L 725 288" marker-end="url(#m14g)"/>
+
+    <rect class="bx-a" x="24" y="292" width="382" height="114" rx="2"/>
+    <text class="t-lbl" x="38" y="314">NHÁNH A · kho OpenSPG</text>
+    <text class="t-tiny" x="38" y="334">impl/openspg_graph_api.py dòng 251</text>
+    <text class="t-tiny" x="38" y="350">&rarr; knext/graph/client.py dòng 36</text>
+    <text class="t-tiny" x="38" y="366">&rarr; gói REST gửi ra máy chủ OpenSPG</text>
+    <text class="t-tiny" x="38" y="390">KAG KHÔNG TÍNH GÌ · chỉ nhận điểm về</text>
+
+    <rect class="bx-g" x="534" y="292" width="382" height="114" rx="2"/>
+    <text class="t-lbl" x="548" y="314">NHÁNH B · kho trong bộ nhớ</text>
+    <text class="t-tiny" x="548" y="334">impl/memory_graph_api.py dòng 50-53</text>
+    <text class="t-tiny" x="548" y="350">&rarr; memory_graph.py dòng 338 ppr_chunk_retrieval</text>
+    <text class="t-tiny" x="548" y="366">&rarr; dòng 296, dựng vector reset_prob rồi dòng 329:</text>
+    <text class="t-tiny" x="548" y="390">igraph.personalized_pagerank · damping 0.1 · prpack</text>
+
+    <text class="t-tiny" x="24" y="434">Ai cắm ppr_chunk_retriever_tool vào: kg_fr_retriever.py dòng 57-61 tự đặt mặc định {"type": "ppr_chunk_retriever"} nếu cấu hình bỏ trống,</text>
+    <text class="t-tiny" x="24" y="452">và 14 file YAML trong repo khai thẳng khóa ppr_chunk_retriever_tool. Kho trong bộ nhớ dựng đồ thị bằng igraph, memory_graph.py dòng 18 và 102.</text>
+  </svg>
+  </div>
+  <figcaption><strong>KAG không viết PageRank bằng Python thuần, nhưng cũng không phải lúc nào cũng đẩy ra máy chủ.</strong> Hình này chứng minh hai điều khó thấy khi đọc rời từng file. Một, chuỗi gọi đi qua đúng bốn chặng và chặng nào cũng chỉ chuyển tiếp, nên đọc một file lẻ sẽ tưởng chỗ nào cũng &ldquo;có PageRank&rdquo;. Hai, chỗ thuật toán thật sự chạy phụ thuộc vào bản cài <span class="mono">GraphApiABC</span> đang dùng: với OpenSPG thì KAG chỉ gửi một lời gọi REST rồi nhận điểm về, với kho bộ nhớ thì KAG gọi <span class="mono">igraph</span> ngay trong tiến trình, với <span class="mono">damping</span> 0.1 chứ không phải 0.85 như mặc định quen thuộc của PageRank. Con số 0.1 đó là thứ bạn sẽ muốn chỉnh đầu tiên nếu kết quả retrieval lan quá xa hoặc quá gần điểm xuất phát.</figcaption>
   </figure>
 </section>
 
@@ -739,13 +978,14 @@
   <div class="callout">
     <span class="k">Phân biệt trước khi đọc tiếp</span>
     <p><strong>Baseline thứ nhất là một đường chạy.</strong> Nó là mã thật, nhận câu hỏi và trả lời, chỉ làm theo cách đơn giản nhất. Nằm ở <span class="mono">kag/solver/pipeline/naive_rag_pipeline.py</span> cộng <span class="mono">kag/solver/pipelineconf/naive_rag.yaml</span>.</p>
-    <p><strong>Baseline thứ hai là một cái cân.</strong> Nó không trả lời gì cả, nó chấm điểm câu trả lời của người khác. Nằm ở <span class="mono">kag/open_benchmark/</span>. Cái này thường được gọi là <strong>benchmark</strong>, bộ đề chuẩn để so điểm.</p>
+    <p><strong>Baseline thứ hai là một cái cân.</strong> Nó không trả lời gì cả, nó chấm điểm câu trả lời của người khác. Nằm ở <span class="mono">kag/open_benchmark/</span>. Cái này thường được gọi là <strong>benchmark</strong>, benchmark để so điểm.</p>
   </div>
 
   <p class="col">Bắt đầu với cái thứ nhất. Điểm khác nhau giữa <span class="mono">naive_rag_pipeline</span> và <span class="mono">kag_static_pipeline</span> gọn hơn nhiều so với tưởng tượng, và nó nằm ở đúng một hàm.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 460" role="img" aria-label="So sánh naive_rag_pipeline với kag_static_pipeline. Hai đường giống hệt nhau ở bước thực thi và bước sinh câu trả lời, chỉ khác ở bước lập kế hoạch: bên naive dựng cứng đúng một việc trong mã, bên KAG gọi planner và planner gọi LLM.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 460" role="img" aria-label="So sánh naive_rag_pipeline với kag_static_pipeline. Hai đường giống hệt nhau ở bước executor và bước sinh câu trả lời, chỉ khác ở bước planner: bên naive dựng cứng đúng một việc trong mã, bên KAG gọi planner và planner gọi LLM.">
     <defs>
       <marker id="m10n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="m10a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -792,7 +1032,7 @@
     <path class="ln" d="M 230 212 L 230 236" marker-end="url(#m10n)"/>
     <text class="t-tiny" x="242" y="230">đúng một việc</text>
     <path class="ln" d="M 230 304 L 230 328" marker-end="url(#m10n)"/>
-    <text class="t-tiny" x="242" y="322">đoạn văn lấy được</text>
+    <text class="t-tiny" x="242" y="322">chunk lấy được</text>
 
     <path class="ln-a" d="M 710 92 L 710 116" marker-end="url(#m10a)"/>
     <text class="t-tiny" x="722" y="110">câu hỏi thô</text>
@@ -804,13 +1044,15 @@
     <text class="t-tiny" x="30" y="418">Hàm dựng của NaiveRAGPipeline không nhận tham số planner nào cả: nó chỉ nhận executors và generator.</text>
     <text class="t-tiny" x="30" y="436">Vậy khác biệt không phải planner loại A so với planner loại B, mà là không có planner nào so với có một planner thật.</text>
   </svg>
-  <figcaption><strong>Một hàm, không phải một kiến trúc.</strong> Hình này chứng minh phần lớn bộ khung của KAG vẫn chạy nguyên vẹn trong bản naive: vẫn Context, vẫn Task, vẫn <span class="mono">asyncio.gather</span>, vẫn generator. Thứ bị rút ra là bộ lập kế hoạch. Vì thế chênh lệch điểm giữa hai bên đo đúng một thứ: giá trị của việc để LLM tách câu hỏi thành nhiều bước.</figcaption>
+  </div>
+  <figcaption><strong>Một hàm, không phải một kiến trúc.</strong> Hình này chứng minh phần lớn bộ khung của KAG vẫn chạy nguyên vẹn trong bản naive: vẫn Context, vẫn Task, vẫn <span class="mono">asyncio.gather</span>, vẫn generator. Thứ bị rút ra là planner. Vì thế chênh lệch điểm giữa hai bên đo đúng một thứ: giá trị của việc để LLM tách câu hỏi thành nhiều bước.</figcaption>
   </figure>
 
   <p class="col">Sang cái cân. <span class="mono">kag/open_benchmark/</span> có năm tập dữ liệu: <span class="mono">2wiki</span>, <span class="mono">hotpotqa</span>, <span class="mono">musique</span>, <span class="mono">AffairQA</span>, <span class="mono">prqa</span>. Thước đo nằm ở <span class="mono">kag/common/benchmarks/</span>, trong đó <span class="mono">evaUtils.py</span> giữ hai hàm cốt lõi: <span class="mono">exact_match_score</span> dòng 92 và <span class="mono">f1_score</span> dòng 44. <strong>EM</strong> là tỷ lệ trả lời trùng khít từng chữ sau khi chuẩn hóa. <strong>F1</strong> là điểm trung bình điều hòa giữa độ chính xác và độ bao phủ trên tập từ, nên trả lời gần đúng vẫn được một phần điểm.</p>
 
   <figure class="wide">
-  <svg class="dg" viewBox="0 0 940 470" role="img" aria-label="Đường đi của tập hotpotqa từ dữ liệu thô qua file dựng chỉ mục vào kho, rồi qua file chấm điểm ra hai con số EM và F1, kèm chỗ rẽ nhánh của bảy file cấu hình.">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 470" role="img" aria-label="Đường đi của tập hotpotqa từ dữ liệu thô qua file dựng index vào kho, rồi qua file chấm điểm ra hai con số EM và F1, kèm chỗ rẽ nhánh của bảy file cấu hình.">
     <defs>
       <marker id="m11n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
       <marker id="m11a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
@@ -845,8 +1087,8 @@
     <text class="t-tiny" x="344" y="298">knowledge_unit · và bản gốc</text>
 
     <path class="ln-a" d="M 445 196 L 445 140" marker-end="url(#m11a)"/>
-    <text class="t-tiny" x="96" y="180">mỗi file chọn một bộ quản lý chỉ mục khác nhau,</text>
-    <text class="t-tiny" x="96" y="196">nên bảy biến thể rẽ ngay tại bước dựng chỉ mục</text>
+    <text class="t-tiny" x="96" y="180">mỗi file chọn một index manager khác nhau,</text>
+    <text class="t-tiny" x="96" y="196">nên bảy biến thể rẽ ngay tại bước dựng index</text>
 
     <rect class="bx" x="640" y="200" width="276" height="76" rx="2"/>
     <text class="t-tiny" x="654" y="222">CHẠY TRẢ LỜI</text>
@@ -872,14 +1114,15 @@
     <path class="ln-g" d="M 326 390 L 258 390" marker-end="url(#m11g)"/>
     <text class="t-tiny" x="150" y="340">chuẩn hóa chữ rồi so</text>
   </svg>
-  <figcaption><strong>Bảy biến thể rẽ ở bước dựng, không phải bước trả lời.</strong> Hình này chứng minh cách KAG so các kiểu chỉ mục với nhau: bảy file <span class="mono">kag_config*.yaml</span> của <span class="mono">hotpotqa</span> khác nhau ở chỗ chúng chọn bộ quản lý chỉ mục nào, nên cùng một tập câu hỏi phải dựng lại kho bảy lần rồi mới chạy chấm. Nội dung chi tiết từng file trong bảy file đó thì <span class="mono">chưa xác minh</span> tới từng khóa. Ngoài EM và F1, <span class="mono">kag/common/benchmarks/evaluate.py</span> còn có <span class="mono">compute_rouge</span>, <span class="mono">recall_top</span> và <span class="mono">getLLMBenchMark</span> để chấm bằng LLM.</figcaption>
+  </div>
+  <figcaption><strong>Bảy biến thể rẽ ở bước dựng, không phải bước solver.</strong> Hình này chứng minh cách KAG so các kiểu index với nhau: bảy file <span class="mono">kag_config*.yaml</span> của <span class="mono">hotpotqa</span> khác nhau ở chỗ chúng chọn index manager nào, nên cùng một tập câu hỏi phải dựng lại kho bảy lần rồi mới chạy chấm. Nội dung chi tiết từng file trong bảy file đó thì <span class="mono">chưa xác minh</span> tới từng khóa. Ngoài EM và F1, <span class="mono">kag/common/benchmarks/evaluate.py</span> còn có <span class="mono">compute_rouge</span>, <span class="mono">recall_top</span> và <span class="mono">getLLMBenchMark</span> để chấm bằng LLM.</figcaption>
   </figure>
 </section>
 
 <!-- ============ 06 ============ -->
 <section id="s6">
   <div class="sec-head"><span class="sec-num">06</span><h2>Khái niệm nối tới mã</h2></div>
-  <p class="sec-sub">Đây là bảng chứ không phải sơ đồ, vì nó là một phép ánh xạ chứ không phải một dòng chảy. Mỗi khái niệm hay được nhắc trong tài liệu KAG nằm ở đúng một chỗ trong mã.</p>
+  <p class="sec-sub">Đây là bảng chứ không phải sơ đồ, vì nó là một mapping chứ không phải một dòng chảy. Mỗi khái niệm hay được nhắc trong tài liệu KAG nằm ở đúng một chỗ trong mã.</p>
 
   <div class="tw">
   <table class="filemap">
@@ -891,29 +1134,29 @@
         <td style="font-family:var(--sans)">Lớp <span class="mono">KAGLFStaticPlanner</span> dòng 21. Bên <span class="mono">kag_model_planner</span>, dòng 191-194 gọi <span class="mono">parse_logic_form_with_str</span> rồi <span class="mono">ParseLogicForm.parse_logic_form_set</span> để đổi văn bản LLM trả về thành các bước máy đọc được.</td>
       </tr>
       <tr>
-        <td>PageRank cá nhân hóa</td>
+        <td>personalized PageRank</td>
         <td>kag/common/tools/algorithm_tool/chunk_retriever/ppr_chunk_retriever.py</td>
         <td style="font-family:var(--sans)">Dòng 99 gọi <span class="mono">graph_api.calculate_pagerank_scores</span>, dòng 134 gọi <span class="mono">get_entity_prop_by_id</span>. Việc tính chạy ở kho phía sau <span class="mono">GraphApiABC</span>, không cài tay trong Python.</td>
       </tr>
       <tr>
-        <td>chỉ mục hai chiều tri thức &harr; đoạn văn</td>
+        <td>knowledge–chunk mutual index</td>
         <td>kag/builder/component/extractor/schema_free_extractor.py</td>
         <td style="font-family:var(--sans)">Dòng 375: <span class="mono">sub_graph.add_edge(node.id, node.label, "source", chunk.id, CHUNK_TYPE)</span>. Đây là <strong>một</strong> cạnh vật lý tên <span class="mono">source</span>, đi cả hai chiều được là nhờ kho đồ thị duyệt ngược. Bốn extractor khác dùng tên cạnh <span class="mono">sourceChunk</span>. Có cạnh ngược riêng hay không thì <span class="mono">chưa xác minh</span>.</td>
       </tr>
       <tr>
-        <td>ràng buộc schema lúc trích</td>
+        <td>schema-constraint extraction</td>
         <td>kag/builder/component/extractor/schema_constraint_extractor.py</td>
         <td style="font-family:var(--sans)">Lớp <span class="mono">SchemaConstraintExtractor</span> dòng 35. Dòng 64 dựng <span class="mono">SchemaClient</span>, dòng 335 gọi <span class="mono">self.schema.get(s_label)</span> để tra kiểu hợp lệ trước khi nhận một thực thể. Bản đối lập là <span class="mono">schema_free_extractor.py</span>, không tra gì cả.</td>
       </tr>
       <tr>
-        <td>đồ thị việc</td>
+        <td>task DAG</td>
         <td>kag/interface/solver/planner_abc.py<br>kag/interface/solver/context.py</td>
         <td style="font-family:var(--sans)">Lớp <span class="mono">Task</span> dòng 24, giữ <span class="mono">parents</span> và <span class="mono">children</span> ở dòng 42-43. Đồ thị thật dựng ở <span class="mono">Context.get_dag</span> dòng 82-108 bằng <span class="mono">networkx.DiGraph</span>.</td>
       </tr>
       <tr>
         <td>chạy song song</td>
         <td>kag/solver/pipeline/kag_static_pipeline.py<br>kag/builder/runner.py</td>
-        <td style="font-family:var(--sans)">Hai cơ chế khác nhau. Bên trả lời dùng <span class="mono">asyncio.gather</span> dòng 136-144, song song theo tầng của đồ thị việc. Bên dựng chỉ mục dùng <span class="mono">ThreadPoolExecutor</span>, song song theo tài liệu.</td>
+        <td style="font-family:var(--sans)">Hai cơ chế khác nhau. Bên solver dùng <span class="mono">asyncio.gather</span> dòng 136-144, song song theo tầng của task DAG. Bên dựng index dùng <span class="mono">ThreadPoolExecutor</span>, song song theo tài liệu.</td>
       </tr>
     </tbody>
   </table>
@@ -924,27 +1167,27 @@
 <!-- ============ 07 ============ -->
 <section id="s7">
   <div class="sec-head"><span class="sec-num">07</span><h2>Từ điển</h2></div>
-  <p class="sec-sub">Mỗi mục: tên tiếng Việt, tên tiếng Anh, một câu định nghĩa, và chỗ nó xuất hiện trong mã. Bấm để mở.</p>
+  <p class="sec-sub">Mỗi mục: tên tiếng Anh, chú thích tiếng Việt, một câu định nghĩa, và chỗ nó xuất hiện trong mã. Bấm để mở.</p>
 
   <div class="gloss">
     <details open>
-      <summary>Sổ đăng ký <span class="en">registry</span></summary>
+      <summary>registry <span class="en">sổ đăng ký</span></summary>
       <div class="gbody">
-        <p>Một cuốn danh bạ trong bộ nhớ, ánh xạ từ một chuỗi tên về đúng lớp mang tên đó, để mã có thể dựng object mà không cần biết tên lớp lúc viết.</p>
+        <p>Một registry trong bộ nhớ, mapping từ một chuỗi tên về đúng lớp mang tên đó, để mã có thể dựng object mà không cần biết tên lớp lúc viết.</p>
         <p class="like">Giống như tổng đài: bạn đọc tên, tổng đài nối máy, bạn không cần biết số.</p>
         <p class="where">kag/common/registry/registrable.py · dòng 499</p>
       </div>
     </details>
     <details>
-      <summary>Decorator đăng ký <span class="en">register decorator</span></summary>
+      <summary>register decorator <span class="en">decorator đăng ký</span></summary>
       <div class="gbody">
-        <p>Một dòng đặt ngay trên định nghĩa lớp, dạng <span class="mono">@LớpTrừuTượng.register("tên")</span>, chạy lúc mô-đun được nạp và ghi cặp tên với lớp vào sổ.</p>
+        <p>Một dòng đặt ngay trên định nghĩa lớp, dạng <span class="mono">@AbstractClass.register("tên")</span>, chạy lúc mô-đun được nạp và ghi cặp tên với lớp vào sổ.</p>
         <p class="like">Giống như tự dán nhãn tên lên áo trước khi bước vào phòng họp.</p>
         <p class="where">kag/builder/component/extractor/schema_free_extractor.py · dòng 33-34</p>
       </div>
     </details>
     <details>
-      <summary>Lớp trừu tượng <span class="en">abstract class</span></summary>
+      <summary>abstract class <span class="en">lớp trừu tượng</span></summary>
       <div class="gbody">
         <p>Lớp chỉ khai tên hàm và tham số chứ không viết thân hàm, dùng để bắt mọi bản cài đặt phải có cùng một hình dạng.</p>
         <p class="like">Giống như tờ mẫu đơn: ô nào cũng phải điền, điền gì là việc của người nộp.</p>
@@ -952,7 +1195,7 @@
       </div>
     </details>
     <details>
-      <summary>Đoạn văn <span class="en">chunk</span></summary>
+      <summary>chunk <span class="en">đoạn văn</span></summary>
       <div class="gbody">
         <p>Một mẩu văn bản cắt ra từ tài liệu gốc, đủ ngắn để nhét vừa cửa sổ ngữ cảnh của mô hình và đủ dài để còn nghĩa.</p>
         <p class="like">Giống như xé một cuốn sách thành từng mục rời rồi đánh số lại.</p>
@@ -960,7 +1203,7 @@
       </div>
     </details>
     <details>
-      <summary>Lược đồ <span class="en">schema</span></summary>
+      <summary>schema <span class="en">lược đồ</span></summary>
       <div class="gbody">
         <p>Bản khai trước các kiểu thực thể và kiểu quan hệ được phép tồn tại trong đồ thị, kèm thuộc tính của từng kiểu.</p>
         <p class="like">Giống như danh mục các loại giấy tờ mà một cơ quan chịu nhận, ngoài danh mục thì trả lại.</p>
@@ -968,7 +1211,7 @@
       </div>
     </details>
     <details>
-      <summary>Dạng luận lý <span class="en">logical form</span></summary>
+      <summary>logical form <span class="en">dạng luận lý</span></summary>
       <div class="gbody">
         <p>Cách viết một bước truy vấn thành cấu trúc máy đọc được, thay vì để nguyên câu chữ tự nhiên, nhờ đó máy biết chính xác phải đi tìm cái gì.</p>
         <p class="like">Giống như đổi câu &ldquo;tìm thuốc chữa bệnh này&rdquo; thành một phiếu yêu cầu có ô loại bệnh và ô loại thuốc.</p>
@@ -976,7 +1219,7 @@
       </div>
     </details>
     <details>
-      <summary>Bộ lập kế hoạch <span class="en">planner</span></summary>
+      <summary>planner <span class="en">bộ lập kế hoạch</span></summary>
       <div class="gbody">
         <p>Thành phần biến một câu hỏi thành danh sách việc cần làm, có ghi việc nào phải chờ việc nào.</p>
         <p class="like">Giống như người chia đầu việc trước khi cả nhóm bắt tay vào làm.</p>
@@ -984,15 +1227,15 @@
       </div>
     </details>
     <details>
-      <summary>Bộ thực thi <span class="en">executor</span></summary>
+      <summary>executor <span class="en">bộ thực thi</span></summary>
       <div class="gbody">
-        <p>Thành phần nhận đúng một việc từ kế hoạch rồi làm việc đó, có thể là tra kho, suy diễn, tính toán hay gọi công cụ ngoài.</p>
+        <p>Thành phần nhận đúng một việc từ plan rồi làm việc đó, có thể là tra kho, suy diễn, tính toán hay gọi công cụ ngoài.</p>
         <p class="like">Giống như người nhận phiếu việc rồi đi làm, không quan tâm ai đã chia phiếu.</p>
         <p class="where">kag/solver/executor/ · 33 file .py</p>
       </div>
     </details>
     <details>
-      <summary>Bộ truy hồi <span class="en">retriever</span></summary>
+      <summary>retriever <span class="en">bộ truy hồi</span></summary>
       <div class="gbody">
         <p>Thành phần đi tìm lại tri thức đã cất trong kho, theo tên chính xác, theo độ giống nghĩa, hoặc theo đường đi trên đồ thị.</p>
         <p class="like">Giống như thủ thư: bạn mô tả cuốn sách, thủ thư lấy nó ra khỏi kệ.</p>
@@ -1000,7 +1243,7 @@
       </div>
     </details>
     <details>
-      <summary>Xếp lại <span class="en">rerank</span></summary>
+      <summary>rerank <span class="en">xếp lại</span></summary>
       <div class="gbody">
         <p>Bước chấm lại thứ tự các kết quả vừa lấy được, bằng một mô hình kỹ hơn mô hình đã dùng để lấy, nhằm đẩy kết quả đúng lên đầu.</p>
         <p class="like">Giống như lọc lại xấp hồ sơ đã sơ tuyển, lần này đọc kỹ từng tờ.</p>
@@ -1008,7 +1251,7 @@
       </div>
     </details>
     <details>
-      <summary>Vector nhúng <span class="en">embedding</span></summary>
+      <summary>embedding <span class="en">vector nhúng</span></summary>
       <div class="gbody">
         <p>Một dãy số biểu diễn nghĩa của một mẩu văn bản, sao cho hai mẩu gần nghĩa thì hai dãy số gần nhau.</p>
         <p class="like">Giống như đặt mỗi câu vào một tọa độ, câu cùng chủ đề thì ở gần nhau trên bản đồ.</p>
@@ -1016,7 +1259,7 @@
       </div>
     </details>
     <details>
-      <summary>PageRank cá nhân hóa <span class="en">personalized PageRank</span></summary>
+      <summary>personalized PageRank <span class="en">PageRank cá nhân hóa</span></summary>
       <div class="gbody">
         <p>Cách chấm điểm quan trọng cho các node trong đồ thị, nhưng chỉ tính từ một nhóm node xuất phát đã chọn, nên điểm phản ánh mức liên quan tới đúng câu hỏi đang hỏi.</p>
         <p class="like">Giống như hỏi &ldquo;từ ba người quen này, ai là người hay được nhắc tới nhất trong mạng của họ&rdquo;.</p>
@@ -1024,7 +1267,7 @@
       </div>
     </details>
     <details>
-      <summary>Đồ thị có hướng không chu trình <span class="en">DAG</span></summary>
+      <summary>DAG <span class="en">đồ thị có hướng không chu trình</span></summary>
       <div class="gbody">
         <p>Đồ thị mà mọi cạnh đều có chiều và không có đường nào đi vòng về chỗ cũ, dùng để diễn tả việc nào phải xong trước việc nào.</p>
         <p class="like">Giống như sơ đồ nấu ăn: ướp trước, rán sau, không có bước nào quay lại bước cũ.</p>
@@ -1032,7 +1275,7 @@
       </div>
     </details>
     <details>
-      <summary>Mốc so sánh <span class="en">baseline</span></summary>
+      <summary>baseline <span class="en">mốc so sánh</span></summary>
       <div class="gbody">
         <p>Một cách làm đơn giản, cố tình giữ nguyên phần khung và chỉ bỏ đi thứ đang muốn đánh giá, để xem thiếu nó thì kết quả tụt bao nhiêu.</p>
         <p class="like">Giống như nấu cùng một món hai lần, lần sau bỏ một loại gia vị, để biết gia vị đó đáng giá bao nhiêu.</p>
@@ -1040,7 +1283,7 @@
       </div>
     </details>
     <details>
-      <summary>Bộ đề chuẩn <span class="en">benchmark</span></summary>
+      <summary>benchmark <span class="en">bộ đề chuẩn</span></summary>
       <div class="gbody">
         <p>Một tập câu hỏi kèm đáp án đúng có sẵn, cộng với mã chấm điểm, dùng để so các hệ thống khác nhau trên cùng một thước.</p>
         <p class="like">Giống như đề thi chung: ai cũng làm một đề, chấm bằng một đáp án.</p>
@@ -1048,7 +1291,7 @@
       </div>
     </details>
     <details>
-      <summary>Trùng khít <span class="en">EM, exact match</span></summary>
+      <summary>EM, exact match <span class="en">trùng khít</span></summary>
       <div class="gbody">
         <p>Thước đo nhị phân: câu trả lời chỉ được tính điểm khi trùng đúng từng chữ với đáp án sau khi đã chuẩn hóa chữ thường, bỏ dấu câu và bỏ mạo từ.</p>
         <p class="like">Giống như chấm trắc nghiệm: đúng thì một điểm, gần đúng cũng là không.</p>
@@ -1056,7 +1299,7 @@
       </div>
     </details>
     <details>
-      <summary>Điểm F1 <span class="en">F1 score</span></summary>
+      <summary>F1 score <span class="en">Điểm F1</span></summary>
       <div class="gbody">
         <p>Trung bình điều hòa giữa độ chính xác và độ bao phủ tính trên tập từ của câu trả lời, nên trả lời thừa hoặc thiếu vài từ vẫn còn một phần điểm.</p>
         <p class="like">Giống như chấm bài tự luận theo ý: trúng bao nhiêu ý thì được bấy nhiêu phần.</p>
@@ -1069,7 +1312,7 @@
 </div>
 
 <footer>
-  <p><strong>Nguồn.</strong> Toàn bộ tên file, tên lớp, tên hàm và số dòng trên trang này đọc trực tiếp từ mã OpenSPG/KAG 0.8.0. Số file <span class="mono">.py</span> đếm bằng <span class="mono">find</span>, số dòng import đếm bằng <span class="mono">grep</span>. Mười một sơ đồ đều vẽ tay bằng SVG, dùng lại bộ lớp trong <span class="mono">assets/css/diagram.css</span> nên chúng đổi màu theo nút Sáng / Tối.</p>
+  <p><strong>Nguồn.</strong> Toàn bộ tên file, tên lớp, tên hàm và số dòng trên trang này đọc trực tiếp từ mã OpenSPG/KAG 0.8.0. Số file <span class="mono">.py</span> đếm bằng <span class="mono">find</span>, số dòng import đếm bằng <span class="mono">grep</span>. Mười bốn sơ đồ đều vẽ tay bằng SVG, dùng lại bộ lớp trong <span class="mono">assets/css/diagram.css</span> nên chúng đổi màu theo nút Sáng / Tối.</p>
   <p><strong>Những chỗ chưa xác minh.</strong> Một, hai vòng import ngược ở mục 01 có gây lỗi lúc chạy hay không. Hai, chuỗi nạp và ráp neo YAML trong <span class="mono">kag/common/conf.py</span> chưa đọc tới từng dòng. Ba, thư mục <span class="mono">aligner/</span> không xuất hiện trong ba hàm <span class="mono">build()</span>, chưa rõ nơi gọi thật. Bốn, nơi nào dùng lớp <span class="mono">MCPPipeline</span> khi không file YAML mẫu nào trỏ tới nó. Năm, thư mục <span class="mono">retriever/web_search/</span> rỗng, chưa rõ có bản cài đặt ở chỗ khác không. Sáu, thân các file <span class="mono">kag_flow.py</span>, <span class="mono">kag_merger.py</span>, <span class="mono">kag_lf_rewriter.py</span> chưa đọc tới từng dòng. Bảy, cặp tri thức và đoạn văn có cạnh ngược riêng hay chỉ duyệt ngược trên một cạnh. Tám, nội dung chi tiết của bảy file <span class="mono">kag_config*.yaml</span> trong <span class="mono">hotpotqa</span>.</p>
   <p><a href="index.html">&larr; Quay lại trang KAG hoạt động thế nào</a></p>
 </footer>

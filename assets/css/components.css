@@ -125,3 +125,8 @@ figcaption{font-size:14.5px; color:var(--ink-2); margin-top:10px; line-height:1.
 }
 .theme-btn:hover{color:var(--ink); border-color:var(--ink-3)}
 .theme-btn:focus-visible{outline:2px solid var(--carmine); outline-offset:2px}
+
+/* Sơ đồ SVG trên màn hẹp: giữ bề rộng tối thiểu để chữ còn đọc được, cho cuộn ngang.
+   Chỉ dùng ở cau-truc-va-luong.html. */
+.figx{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.figx .dg{min-width:780px}
