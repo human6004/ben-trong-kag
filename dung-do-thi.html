@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Runbook chín bước dựng đồ thị tri thức cho dự án kag-legal-assistant: lệnh chạy, dấu hiệu đúng và cách xử lý sự cố.">
+<title>Dựng đồ thị luật Việt Nam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/layout.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/diagram.css">
+</head>
+<body>
+<button class="theme-btn" id="themeBtn" type="button">Sáng / Tối</button>
+
+<div class="shell">
+
+<nav class="rail">
+  <div class="rail-mark">Dựng đồ thị luật Việt Nam<span>Runbook · kag-legal-assistant</span></div>
+  <ul class="toc" id="toc">
+    <li><a href="#s1"><em>01</em><span>Hai luật bất di bất dịch</span></a></li>
+    <li><a href="#s2"><em>02</em><span>Chín bước</span></a></li>
+    <li><a href="#s3"><em>03</em><span>Theo dõi tiến độ khi đang chạy</span></a></li>
+    <li><a href="#s4"><em>04</em><span>Sự cố hay gặp</span></a></li>
+    <li><a href="#s5"><em>05</em><span>Khi muốn làm lại từ đầu</span></a></li>
+    <li><a href="index.html"><em>&larr;</em><span>KAG hoạt động thế nào</span></a></li>
+    <li><a href="cau-truc-va-luong.html"><em>&larr;</em><span>Cấu trúc và luồng chạy KAG</span></a></li>
+    <li><a href="cai-tien-solver.html"><em>&larr;</em><span>Cải tiến vòng lặp solver</span></a></li>
+  </ul>
+  <div class="rail-foot">
+    23 văn bản · 1.121 chunk<br>
+    9 bước · 3.363 lượt gọi mô hình<br>
+    đối chiếu: OpenSPG/KAG 0.8.0
+  </div>
+</nav>
+
+<main>
+
+<header class="hero">
+  <p class="eyebrow">Runbook · dự án kag-legal-assistant</p>
+  <h1>Dựng đồ thị luật Việt Nam</h1>
+  <p class="lede">Từ lúc chưa có gì chạy tới lúc hỏi được câu đầu tiên. <strong>Chín bước, mỗi bước có lệnh chạy và dấu hiệu để biết nó đã xong đúng.</strong></p>
+</header>
+
+<div class="wrap">
+
+<!-- ============ 01 ============ -->
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">01</span><h2>Hai luật bất di bất dịch</h2></div>
+  <p class="sec-sub">Hai luật này không phải mẹo cho gọn, mà là hai lỗi làm hỏng cả buổi chạy. Vi phạm luật nào cũng hỏng ngay ở lệnh đầu tiên, trước cả khi tốn lượt gọi mô hình nào.</p>
+
+  <div class="callout">
+    <span class="k">Luật một</span>
+    <p>Luôn đứng trong thư mục <code>kag/</code>. Đứng ở thư mục gốc project hỏng ngay vì hai lý do độc lập. Thư mục <code>kag/</code> của project không có <code>__init__.py</code> nên Python cướp luôn tên gói <code>kag</code> và che mất thư viện thật. Và KAG tìm <code>kag_config.yaml</code> bằng cách đi ngược lên cây thư mục, đứng ở gốc thì file config là con chứ không phải tổ tiên, dò lên tận ổ đĩa vẫn không thấy.</p>
+  </div>
+
+  <div class="callout">
+    <span class="k">Luật hai</span>
+    <p>Luôn gọi Python trong <code>.venv</code>. Lệnh <code>python</code> trên PATH là bản msys2 3.14 không có KAG. Bản đúng nằm ở <code>.venv/Scripts/python.exe</code>.</p>
+  </div>
+
+  <p class="col">Bốn con số dưới đây là những gì cần biết trước khi bắt tay vào, để biết mình đang ở đâu và sắp tốn cái gì.</p>
+
+  <div class="tw">
+  <table class="filemap">
+    <thead><tr><th>Mục</th><th>Con số</th></tr></thead>
+    <tbody>
+      <tr><td>Đã sẵn sàng</td><td>23 văn bản, 1.121 chunk</td></tr>
+      <tr><td>Bước tốn tiền</td><td>bước 6 trở đi</td></tr>
+      <tr><td>Lượt gọi mô hình</td><td>3.363 cho cả kho</td></tr>
+      <tr><td>Máy cần có</td><td>Docker Desktop</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <span class="src">số liệu chạy thật từ scanner + reader + splitter của KAG 0.8.0 trên data/processed</span>
+</section>
+
+<!-- ============ 02 ============ -->
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">02</span><h2>Chín bước</h2></div>
+  <p class="sec-sub">Chín bước nối tiếp nhau, đọc từ trên xuống. Chỉ hai bước cuối trong nhóm tốn tiền gọi mô hình, và bước 7 là chốt chặn nằm đúng giữa: qua được nó rồi mới nên chạy nốt 22 file còn lại.</p>
+
+  <article>
+    <h3>Bước 1 · Dựng hạ tầng bằng Docker <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Chạy ở:</strong> thư mục gốc project. <strong>Vì sao:</strong> bốn dịch vụ — OpenSPG server giữ schema và điều phối, Neo4j giữ đồ thị, MySQL giữ siêu dữ liệu project, MinIO giữ file. Lần đầu phải tải ảnh về nên lâu, các lần sau vài giây.</p>
+
+<pre>docker compose -f docker/docker-compose-west.yml up -d</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved">
+      <span class="chip hit">release-openspg-server Up</span>
+      <span class="chip hit">release-openspg-neo4j Up</span>
+      <span class="chip hit">release-openspg-mysql Up</span>
+      <span class="chip hit">release-openspg-minio Up</span>
+    </div>
+    <p class="col">Kiểm bằng <code>docker ps --format "{{.Names}}\t{{.Status}}"</code>.</p>
+
+    <div class="callout">
+      <span class="k">Cảnh báo</span>
+      <p>Neo4j xin 4 GB heap, máy dưới 8 GB RAM sẽ ì. Container Neo4j cứ khởi động lại thì hạ <code>NEO4J_server_memory_heap_max__size</code> trong file compose xuống <code>2G</code>.</p>
+    </div>
+  </article>
+
+  <article>
+    <h3>Bước 2 · Chờ server thật sự sống <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Vì sao:</strong> container &ldquo;Up&rdquo; không có nghĩa ứng dụng Java bên trong đã nạp xong. Bước sau báo lỗi kết nối nếu vội. Thường mất thêm một tới hai phút.</p>
+
+<pre>curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8887
+<span class="tok-c"># mở luôn Neo4j browser http://localhost:7474, user neo4j, mật khẩu neo4j@openspg</span></pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved"><span class="chip hit">200</span></div>
+    <p class="col">Còn <code>000</code> hoặc <code>502</code> thì chờ tiếp, xem <code>docker logs --tail 20 release-openspg-server</code>.</p>
+  </article>
+
+  <article>
+    <h3>Bước 3 · Điền hai khoá API <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Vì sao:</strong> mở <code>kag/kag_config.yaml</code>, thay cả ba chỗ <code>api_key:</code> key. Hai khối <code>openie_llm</code> và <code>chat_llm</code> dùng khoá DashScope của Alibaba. Khối <code>vectorize_model</code> dùng khoá SiliconFlow. Đây là việc phải tự làm, không ai làm thay được.</p>
+
+<pre>grep -n "api_key" kag/kag_config.yaml</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved">
+      <span class="chip hit">4:  api_key: sk-...</span>
+      <span class="chip hit">11: api_key: sk-...</span>
+      <span class="chip hit">17: api_key: sk-...</span>
+    </div>
+
+    <div class="callout">
+      <span class="k">Cảnh báo</span>
+      <p>Đừng commit file này sau khi điền khoá. <code>.gitignore</code> chỉ chặn <code>*.env</code> và <code>*.key</code>, không chặn <code>kag_config.yaml</code>.</p>
+    </div>
+  </article>
+
+  <article>
+    <h3>Bước 4 · Tạo project trên server <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Chạy ở:</strong> <code>kag/</code>. <strong>Vì sao:</strong> lệnh tìm project tên <code>Legal</code>, không có thì tạo mới, rồi tự ghi số id ngược lại vào <code>kag_config.yaml</code>. Dùng <code>restore</code> chứ không phải <code>create</code>, vì <code>create</code> dựng thêm cả bộ khung thư mục mà project đã có rồi.</p>
+
+<pre><span class="tok-k">cd</span> kag
+../.venv/Scripts/knext.exe project restore --host_addr http://127.0.0.1:8887 --proj_path .</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved"><span class="chip hit">grep -n "  id:" kag_config.yaml &nbsp;&rarr;&nbsp; dòng 31 có id khác rỗng, ví dụ id: '4'</span></div>
+    <p class="col">Số cụ thể bao nhiêu không quan trọng, miễn khác rỗng.</p>
+  </article>
+
+  <article>
+    <h3>Bước 5 · Đẩy schema lên server <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Chạy ở:</strong> <code>kag/</code>. <strong>Vì sao:</strong> mười kiểu thực thể trong <code>kag/schema/Legal.schema</code>, gồm <code>Article</code>, <code>ProhibitedAct</code>, <code>Sanction</code>, <code>Obligation</code>, <code>LegalTerm</code>, <code>Authority</code>, <code>RegulatedEntity</code>, <code>LegalDocument</code>. Chưa có bước này thì extractor không dựng nổi prompt, vì prompt cần hỏi server xem có những kiểu gì.</p>
+
+<pre>../.venv/Scripts/knext.exe schema commit</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved"><span class="chip hit">Schema is successfully committed.</span></div>
+    <p class="col">Soi lại trong Neo4j browser bằng <code>CALL db.labels()</code>, nhãn phải mang tiền tố <code>Legal</code>.</p>
+  </article>
+
+  <article>
+    <h3>Bước 6 · Chạy thử đúng một văn bản <span class="llm-tag">có gọi mô hình</span></h3>
+    <p class="col"><strong>Chạy ở:</strong> <code>kag/builder/</code>. <strong>Vì sao:</strong> đây là lần đầu tiêu tiền. Lấy Nghị định 341/2026 về mật mã dân sự làm phép thử, vì nó là file xấu nhất kho — bảng to nhất, phình 1,95 lần, ba chunk 11.553 ký tự. Qua được nó thì 22 file kia gần như chắc chắn qua.</p>
+
+<pre><span class="tok-k">mkdir</span> -p data/trial
+<span class="tok-k">cp</span> data/processed/vn_an_ninh_mang/341-2026-ND-CP_mat-ma-dan-su.md data/trial/
+<span class="tok-k">cd</span> kag/builder
+../../.venv/Scripts/python.exe -c "
+<span class="tok-k">import</span> os
+<span class="tok-k">from</span> kag.common.registry <span class="tok-k">import</span> import_modules_from_path
+import_modules_from_path(os.getcwd())
+<span class="tok-k">from</span> indexer <span class="tok-k">import</span> buildKB
+buildKB(os.path.abspath(<span class="tok-s">'../../data/trial'</span>))
+"</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved">
+      <span class="chip hit">[Scanner]: There are total 1 data to process, worker 0/1 will process range [0, 1)</span>
+      <span class="chip hit">100%|██████████| 1/1 [04:12&lt;00:00]</span>
+      <span class="chip hit">Done process 1 records, with 1 successfully processed</span>
+    </div>
+    <p class="note">Chạy lâu là bình thường, riêng file này khoảng 60 chunk, mỗi chunk ba lượt gọi mô hình.</p>
+  </article>
+
+  <article>
+    <h3>Bước 7 · Kiểm hai thứ trước khi tiêu thêm tiền <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Vì sao:</strong> đây là điểm quyết định. Sai ở đây mà cứ chạy tiếp 22 file nữa là mất tiền vô ích. Mở Neo4j browser rồi chạy hai truy vấn.</p>
+
+    <p class="col"><strong>Kiểm một, tên thực thể còn dấu tiếng Việt không:</strong></p>
+<pre>MATCH (n) WHERE n.name IS NOT NULL
+RETURN labels(n)[0] AS nhan, n.name AS ten LIMIT 30</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved">
+      <span class="chip hit">Nghị định 341/2026/NĐ-CP</span>
+      <span class="chip hit">Điều 4. Nguyên tắc hoạt động mật mã dân sự</span>
+      <span class="chip hit">Bộ Quốc phòng</span>
+    </div>
+
+    <span class="verdict v-bad">Hỏng thì thấy</span>
+    <div class="retrieved">
+      <span class="chip miss">ngh    nh 341 2026 n  cp</span>
+      <span class="chip miss">b  qu c ph ng</span>
+    </div>
+    <p class="col">Ra kiểu thứ hai nghĩa là bản vá giữ dấu trong <code>kag/builder/__init__.py</code> không chạy. Dừng lại, đừng index tiếp.</p>
+
+    <p class="col"><strong>Kiểm hai, ba chunk bảng khổng lồ có ra thực thể tử tế không:</strong></p>
+<pre>MATCH (n) WHERE n.content CONTAINS 'DANH MỤC SẢN PHẨM MẬT MÃ' RETURN count(n)</pre>
+    <p class="col">Vùng bảng không sinh ra thực thể nào thì chấp nhận được. Nhưng cả file chỉ ra dăm ba node thì mô hình đang nghẹn vì passage quá dài, lúc đó mới tính chuyện cắt nhỏ bảng.</p>
+  </article>
+
+  <article>
+    <h3>Bước 8 · Index toàn bộ 23 văn bản <span class="llm-tag">có gọi mô hình</span></h3>
+    <p class="col"><strong>Chạy ở:</strong> <code>kag/builder/</code>. <strong>Vì sao:</strong> bước 7 xanh thì mới tới đây. 1.121 chunk, khoảng 3.363 lượt gọi mô hình. Chạy vài tiếng, cứ để máy chạy.</p>
+
+<pre><span class="tok-k">cd</span> kag/builder
+../../.venv/Scripts/python.exe indexer.py</pre>
+
+    <p class="note">KAG ghi điểm dừng vào <code>kag/ckpt/</code>. Lỡ tắt giữa chừng thì chạy lại lệnh cũ, nó bỏ qua phần đã xong. Ngược lại, sửa file <code>.md</code> thì phải xoá <code>kag/ckpt/</code>, không nó trả lại chunk cũ.</p>
+  </article>
+
+  <article>
+    <h3>Bước 9 · Nạp metadata rồi hỏi thử <span class="llm-tag no-llm">không gọi mô hình</span></h3>
+    <p class="col"><strong>Chạy ở:</strong> <code>kag/</code>. <strong>Vì sao:</strong> bước này đưa ngày hiệu lực, trạng thái còn hay hết hiệu lực, và chuỗi thay thế giữa các văn bản vào đồ thị. Scanner chỉ nhận <code>.md</code> nên đây là đường duy nhất. Không tốn tiền gọi mô hình, chỉ tốn vector hoá.</p>
+
+<pre><span class="tok-k">cd</span> kag
+../.venv/Scripts/python.exe builder/metadata_to_graph.py
+../.venv/Scripts/python.exe builder/injection.py</pre>
+
+    <span class="verdict v-ok">Đúng thì thấy</span>
+    <div class="retrieved">
+      <span class="chip hit">nodes: 70 (50 co metadata day du, 20 chi duoc dan chieu)</span>
+      <span class="chip hit">edges: 62</span>
+      <span class="chip hit">[self-check ok] chuoi thay the 24/2018 -&gt; 116/2025 dung chieu</span>
+    </div>
+
+    <p class="col">Kiểm chuyện quan trọng nhất mà HybridRAG không làm được, là biết văn bản nào hết hiệu lực:</p>
+<pre>MATCH (a)-[:supersededBy]-&gt;(b) RETURN a.name, a.status, a.dateExpired, b.name</pre>
+
+    <p class="col">Rồi hỏi thật, sửa <code>kag/solver/data/questions.json</code> theo bộ câu hỏi của mình:</p>
+<pre><span class="tok-k">cd</span> kag/solver
+../../.venv/Scripts/python.exe eval.py</pre>
+  </article>
+</section>
+
+<!-- ============ 03 ============ -->
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">03</span><h2>Theo dõi tiến độ khi đang chạy</h2></div>
+  <p class="sec-sub">Bước 6 và 8 chạy lâu, có bốn cách nhìn, từ thô tới tinh.</p>
+
+  <div class="tw">
+  <table class="filemap">
+    <thead><tr><th>Nhìn ở đâu</th><th>Thấy gì</th><th>Cách xem</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Thanh tiến độ trong terminal</td>
+        <td>Số văn bản đã xong trên tổng, kèm thời gian còn lại ước tính</td>
+        <td>Tự hiện, một dòng mỗi lần xong một file</td>
+      </tr>
+      <tr>
+        <td>Thư mục điểm dừng</td>
+        <td>Số bản ghi đã xử lý ở từng khâu, đếm được ngay cả khi terminal bị che</td>
+        <td>ls kag/ckpt/</td>
+      </tr>
+      <tr>
+        <td>Neo4j browser</td>
+        <td>Số node tăng dần theo thời gian thực, đây là bằng chứng thật nhất</td>
+        <td>MATCH (n) RETURN count(n), bấm chạy lại vài phút một lần</td>
+      </tr>
+      <tr>
+        <td>Log của server</td>
+        <td>Lỗi phía server, ví dụ schema từ chối thuộc tính lạ</td>
+        <td>docker logs -f release-openspg-server</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="col">Dòng tổng kết cuối cùng là thứ đáng tin nhất, ví dụ <code>Done process 23 records, with 23 successfully processed</code>. Hai số lệch nhau nghĩa là có file chết giữa chừng. Xem log tìm tên file, đừng cho rằng đồ thị đã đủ.</p>
+</section>
+
+<!-- ============ 04 ============ -->
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">04</span><h2>Sự cố hay gặp</h2></div>
+  <p class="sec-sub">Sáu triệu chứng đã gặp thật, kèm nguyên nhân thật bên dưới. Hai dòng đầu cùng một nguyên nhân, nên cách xử lý giống nhau.</p>
+
+  <div class="tw">
+  <table class="filemap">
+    <thead><tr><th>Triệu chứng</th><th>Nguyên nhân thật</th><th>Xử lý</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>No module named 'kag.builder.component'</td>
+        <td>đang đứng ở thư mục gốc project, thư mục kag/ che mất thư viện</td>
+        <td>cd kag rồi chạy lại</td>
+      </tr>
+      <tr>
+        <td>KeyError: 'metadata_inject_chain'</td>
+        <td>cũng là đứng sai thư mục nên config nạp ra rỗng</td>
+        <td>cd kag rồi chạy lại</td>
+      </tr>
+      <tr>
+        <td>Connection refused tới cổng 8887</td>
+        <td>server Java chưa nạp xong, hoặc container chết</td>
+        <td>quay lại bước 2, xem log server</td>
+      </tr>
+      <tr>
+        <td>Sửa file .md rồi mà đồ thị không đổi</td>
+        <td>KAG đọc lại từ điểm dừng cũ</td>
+        <td>rm -rf kag/ckpt rồi index lại</td>
+      </tr>
+      <tr>
+        <td>Tên node mất hết dấu tiếng Việt</td>
+        <td>bản vá trong kag/builder/__init__.py không được nạp</td>
+        <td>dừng ngay, kiểm lại lệnh chạy có đi qua indexer.py không</td>
+      </tr>
+      <tr>
+        <td>Neo4j cứ khởi động lại</td>
+        <td>không đủ RAM cho 4 GB heap</td>
+        <td>hạ heap trong file compose xuống 2G</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ 05 ============ -->
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">05</span><h2>Khi muốn làm lại từ đầu</h2></div>
+  <p class="sec-sub">Xoá sạch đồ thị và dựng lại, giữ nguyên dữ liệu nguồn.</p>
+
+<pre>docker compose -f docker/docker-compose-west.yml down -v
+<span class="tok-k">rm</span> -rf kag/ckpt</pre>
+
+  <p class="col">Rồi quay lại bước 1.</p>
+
+  <div class="callout">
+    <span class="k">Cảnh báo</span>
+    <p>Cờ <code>-v</code> xoá luôn ổ đĩa của Neo4j và MySQL, tức là mất cả project id. Sau đó phải làm lại bước 4 và bước 5. Không có cờ đó thì đồ thị cũ vẫn còn.</p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <p><strong>Nguồn số liệu.</strong> Các con số 23 văn bản, 1.121 chunk và 3.363 lượt gọi mô hình là kết quả chạy thật scanner + reader + splitter của KAG 0.8.0 trên <span class="mono">data/processed</span>, chưa gọi mô hình và chưa ghi gì vào server. Thời gian chạy và chi phí là ước lượng, chưa đo thật. Lệnh và dấu hiệu trong chín bước đối chiếu với OpenSPG/KAG 0.8.0.</p>
+  <p><a href="index.html">&larr; Quay lại trang KAG hoạt động thế nào</a></p>
+</footer>
+
+</main>
+</div>
+
+<script src="assets/js/app.js" defer></script>
+
+</body>
+</html>
