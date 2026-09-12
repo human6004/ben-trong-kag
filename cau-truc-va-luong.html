@@ -30,12 +30,13 @@
     <li><a href="#s5"><em>05</em><span>Hai baseline, hai thứ khác nhau</span></a></li>
     <li><a href="#s6"><em>06</em><span>Khái niệm nối tới mã</span></a></li>
     <li><a href="#s7"><em>07</em><span>Từ điển</span></a></li>
+    <li><a href="#s8"><em>08</em><span>Kiến trúc tổng thể</span></a></li>
     <li><a href="index.html"><em>&larr;</em><span>KAG hoạt động thế nào</span></a></li>
   </ul>
   <div class="rail-foot">
     mã: OpenSPG/KAG 0.8.0<br>
     11 khối · 513 file .py<br>
-    14 sơ đồ
+    15 sơ đồ
   </div>
 </nav>
 
@@ -95,28 +96,35 @@
     <rect class="bx-o" x="168" y="150" width="132" height="48" rx="2"/><text class="t-lbl" x="182" y="171">kag/solver</text><text class="t-tiny" x="182" y="188">108 file</text>
     <rect class="bx-o" x="316" y="150" width="132" height="48" rx="2"/><text class="t-lbl" x="330" y="171">kag/indexer</text><text class="t-tiny" x="330" y="188">3 file</text>
 
-    <text class="t-tiny" x="20" y="272">TẦNG NỀN · BỊ IMPORT NHIỀU NHẤT</text>
+    <text class="t-tiny" x="20" y="274">TẦNG NỀN</text>
     <rect class="bx-a" x="20" y="282" width="204" height="52" rx="2"/><text class="t-lbl" x="34" y="304">kag/interface</text><text class="t-tiny" x="34" y="322">361 LƯỢT BỊ IMPORT</text>
     <rect class="bx-a" x="244" y="282" width="204" height="52" rx="2"/><text class="t-lbl" x="258" y="304">kag/common</text><text class="t-tiny" x="258" y="322">317 LƯỢT BỊ IMPORT</text>
 
     <!-- bin -> common -->
-    <path class="ln" d="M 86 74 L 86 116 L 470 116 L 470 262 L 346 262 L 346 280" marker-end="url(#m1n)"/>
-    <text class="t-tiny" x="356" y="132">bin gọi cấu hình chung · 10 dòng</text>
+    <path class="ln" d="M 86 74 L 86 110 L 520 110 L 520 272 L 265 272 L 265 280" marker-end="url(#m1n)"/>
+    <text class="t-tiny" x="100" y="102">bin gọi cấu hình chung · 10 dòng</text>
     <!-- builder -> interface -->
-    <path class="ln-a" d="M 86 198 L 86 280" marker-end="url(#m1a)"/>
-    <text class="t-tiny" x="94" y="232">kế thừa abstract class</text><text class="t-tiny" x="94" y="248">82 dòng</text>
+    <path class="ln-a" d="M 90 198 L 90 280" marker-end="url(#m1a)"/>
+    <text class="t-tiny" x="98" y="216">kế thừa</text>
+    <text class="t-tiny" x="98" y="232">abstract class</text>
+    <text class="t-tiny" x="98" y="248">82 dòng</text>
     <!-- solver -> interface -->
-    <path class="ln-a" d="M 210 198 L 210 236 L 170 236 L 170 280" marker-end="url(#m1a)"/>
-    <text class="t-tiny" x="220" y="266">solver &rarr; interface · 131 dòng</text>
+    <path class="ln-a" d="M 215 198 L 215 280" marker-end="url(#m1a)"/>
+    <text class="t-tiny" x="223" y="224">solver &rarr; interface</text>
+    <text class="t-tiny" x="223" y="240">131 dòng</text>
     <!-- solver -> common -->
-    <path class="ln" d="M 262 198 L 262 252 L 320 252 L 320 280" marker-end="url(#m1n)"/>
-    <text class="t-tiny" x="330" y="218">solver &rarr; common · 81 dòng</text>
+    <path class="ln" d="M 355 198 L 355 280" marker-end="url(#m1n)"/>
+    <text class="t-tiny" x="363" y="224">solver &rarr;</text>
+    <text class="t-tiny" x="363" y="240">common</text>
+    <text class="t-tiny" x="363" y="256">81 dòng</text>
     <!-- indexer -> common -->
-    <path class="ln" d="M 400 198 L 400 280" marker-end="url(#m1n)"/>
-    <text class="t-tiny" x="410" y="240">indexer &rarr; common · 2 dòng</text>
+    <path class="ln" d="M 430 198 L 430 280" marker-end="url(#m1n)"/>
+    <text class="t-tiny" x="438" y="224">indexer &rarr;</text>
+    <text class="t-tiny" x="438" y="240">common</text>
+    <text class="t-tiny" x="438" y="256">2 dòng</text>
 
     <!-- cycle interface <-> builder -->
-    <path class="ln-dash" d="M 40 282 L 40 262 L 8 262 L 8 174 L 18 174" marker-end="url(#m1g)"/>
+    <path class="ln-dash" d="M 20 310 L 8 310 L 8 174 L 20 174" marker-end="url(#m1g)"/>
     <text class="t-tiny" x="470" y="360">VÒNG NGƯỢC · interface nhập lại model của builder · 10 dòng</text>
     <text class="t-tiny" x="470" y="378">VÒNG NGƯỢC · common nhập lại tiện ích của solver · 3 dòng</text>
 
@@ -127,13 +135,13 @@
     <rect class="bx-g" x="576" y="112" width="150" height="44" rx="2"/><text class="t-lbl" x="590" y="139">open_benchmark</text>
     <text class="t-tiny" x="742" y="72">nhập builder, solver,</text>
     <text class="t-tiny" x="742" y="88">common, interface</text>
-    <text class="t-tiny" x="742" y="132">lõi import ngược đúng 2 chỗ,</text>
+    <text class="t-tiny" x="742" y="132">lõi import ngược 2 chỗ,</text>
     <text class="t-tiny" x="742" y="148">đều hoãn trong hàm</text>
-    <path class="ln-g" d="M 640 156 L 640 178 L 520 178 L 520 300 L 452 300" marker-end="url(#m1g)"/>
-    <text class="t-tiny" x="470" y="246">gọi xuống nền</text>
+    <path class="ln-g" d="M 640 156 L 640 300 L 452 300" marker-end="url(#m1g)"/>
+    <text class="t-tiny" x="648" y="240">gọi xuống nền</text>
 
-    <text class="t-tiny" x="560" y="304">ĐỌC HÌNH · mũi tên đi từ khối nhập vào khối bị nhập.</text>
-    <text class="t-tiny" x="560" y="322">Con số là số dòng import thật, đếm bằng grep.</text>
+    <text class="t-tiny" x="560" y="320">ĐỌC HÌNH · mũi tên đi từ khối nhập vào khối bị nhập.</text>
+    <text class="t-tiny" x="560" y="338">Con số là số dòng import thật, đếm bằng grep.</text>
     <text class="t-tiny" x="560" y="404">kag/templates là khối lá duy nhất: 0 dòng import kag.</text>
   </svg>
   </div>
@@ -148,10 +156,10 @@
 
   <div class="callout">
     <span class="k">Ba từ cần hiểu trước</span>
-    <p><strong>Abstract class</strong> là một lớp chỉ khai hình dạng, khai tên hàm và tham số, không viết thân hàm. Nó nói &ldquo;ai muốn làm việc này thì phải có đúng những hàm này&rdquo;. <strong>Register decorator</strong> là một dòng chú thích đặt ngay trên một lớp, dạng <span class="mono">@AbstractClass.register("tên")</span>, có tác dụng dán một cái tên chuỗi lên lớp đó. <strong>Registry</strong> là một registry trong bộ nhớ, mapping từ cái tên chuỗi đó về đúng lớp đã dán nhãn.</p>
+    <p><strong>Abstract class</strong> là một lớp chỉ khai hình dạng, khai tên hàm và tham số, không viết thân hàm. Nó nói &ldquo;ai muốn làm việc này thì phải có đúng những hàm này&rdquo;. <strong>Register decorator</strong> là một dòng chú thích đặt ngay trên một lớp, dạng <span class="mono">@AbstractClass.register("tên")</span>, có tác dụng dán một cái tên chuỗi lên lớp đó. <strong>Registry</strong> là một bảng tra trong bộ nhớ, mapping từ cái tên chuỗi đó về đúng lớp đã dán nhãn.</p>
   </div>
 
-  <p class="col">Tất cả nằm trong một lớp duy nhất: <span class="mono">Registrable</span>, ở <span class="mono">kag/common/registry/registrable.py</span> dòng 493. Cuốn registry là thuộc tính cấp lớp ở dòng 499:</p>
+  <p class="col">Tất cả nằm trong một lớp duy nhất: <span class="mono">Registrable</span>, ở <span class="mono">kag/common/registry/registrable.py</span> dòng 493. Registry đó là thuộc tính cấp lớp ở dòng 499:</p>
 
 <pre><code><span class="tok-k">class</span> Registrable:
     _registry: Dict[Type, Dict[str, Tuple[Type, Optional[str]]]] = defaultdict(dict)</code></pre>
@@ -381,7 +389,7 @@
       <tr><td>writer/</td><td style="font-family:var(--sans)">Ghi đồ thị con xuống kho thật.</td><td>3</td></tr>
       <tr><td>mapping/</td><td style="font-family:var(--sans)">Mapping cột của dữ liệu có cấu trúc sẵn thẳng vào kiểu node, không cần LLM trích.</td><td>4</td></tr>
       <tr><td>external_graph/</td><td style="font-family:var(--sans)">Nạp một đồ thị có sẵn từ ngoài vào.</td><td>2</td></tr>
-      <tr><td>aligner/</td><td style="font-family:var(--sans)">Entity alignment. <strong>Là code chết trong 0.8.0.</strong> Hai class <span class="mono">KAGAligner</span> và <span class="mono">SPGAligner</span> có register vào registry, nhưng grep cả repo kể cả 36 file YAML chỉ ra bốn chỗ, đều là khai báo hoặc tái xuất. <span class="mono">grep -rn "self\.aligner|aligner="</span> trả về rỗng: không chuỗi nào nhận nó, không YAML nào cấu hình nó, không nơi nào gọi nó.</td><td>3</td></tr>
+      <tr><td>aligner/</td><td style="font-family:var(--sans)">Entity alignment. <strong>Là mã chết trong 0.8.0.</strong> Hai class <span class="mono">KAGAligner</span> và <span class="mono">SPGAligner</span> có register vào registry, nhưng grep cả repo kể cả 36 file YAML chỉ ra bốn chỗ, đều là khai báo hoặc tái xuất. <span class="mono">grep -rn "self\.aligner|aligner="</span> trả về rỗng: không chuỗi nào nhận nó, không YAML nào cấu hình nó, không nơi nào gọi nó.</td><td>3</td></tr>
     </tbody>
   </table>
   </div>
@@ -903,15 +911,15 @@
 
     <rect class="bx-a" x="60" y="392" width="370" height="56" rx="2"/>
     <text class="t-lbl" x="74" y="414">GraphApiABC · common/tools/graph_api/</text>
-    <text class="t-tiny" x="74" y="434">hai bản: openspg (ra REST) và memory (igraph, trong tiến trình)</text>
+    <text class="t-tiny" x="74" y="434">hai bản: openspg (REST) · memory (igraph)</text>
     <rect class="bx-g" x="510" y="392" width="370" height="56" rx="2"/>
     <text class="t-lbl" x="524" y="414">context.variables_graph · KgGraph</text>
     <text class="t-tiny" x="524" y="434">dict trong bộ nhớ, chết khi trả lời xong</text>
 
-    <path class="ln-a" d="M 150 116 L 150 336 L 150 388" marker-end="url(#m9a)"/>
+    <path class="ln-a" d="M 36 88 L 27 88 L 27 380 L 245 380 L 245 390" marker-end="url(#m9a)"/>
     <text class="t-tiny" x="34" y="352">Bốn cái trên register dưới RetrieverABC, chúng là công cụ BÊN TRONG</text>
     <text class="t-tiny" x="34" y="368">kag_hybrid_retrieval_executor, không đứng ngang hàng với cột phải.</text>
-    <text class="t-tiny" x="164" y="384">chỉ nhánh kg_fr gọi pagerank</text>
+    <text class="t-tiny" x="256" y="386">chỉ nhánh kg_fr gọi pagerank</text>
     <path class="ln-g" d="M 705 328 L 705 388" marker-end="url(#m9g)"/>
     <text class="t-tiny" x="716" y="360">chỉ đọc ghi trong bộ nhớ</text>
   </svg>
@@ -1307,6 +1315,88 @@
       </div>
     </details>
   </div>
+</section>
+
+<!-- ============ 08 ============ -->
+<section id="s8">
+  <div class="sec-head"><span class="sec-num">08</span><h2>Kiến trúc tổng thể</h2></div>
+  <p class="sec-sub">Bảy mục trên nhìn vào <em>mã nguồn</em>: khối nào giữ việc gì, lớp nào gọi lớp nào, hàm nào chạy trước hàm nào. Mục này đổi góc nhìn sang <em>triển khai</em>: có bao nhiêu tiến trình, cái gì chạy cùng máy, cái gì đi qua mạng, và dữ liệu nằm ở đâu. Hình vẽ theo hai pha offline và online, cùng tầng giữa là chỗ mọi lời gọi đi qua.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 650" role="img" aria-label="Kiến trúc triển khai của KAG, chia hai pha xếp trên dưới. Pha offline dựng tri thức: tài liệu nguồn qua kag/builder với DefaultUnstructuredBuilderChain, rồi batch_vectorizer, rồi kg_writer. Pha online trả lời: câu hỏi vào kag/solver, chạy kag_static_pipeline gồm planner, executor, generator, ra câu trả lời. Tầng giữa nằm ngoài hai khung là knext, một REST client kèm CLI, nối sang openspg-server chạy trong Docker, rồi server nối tới hai kho tách biệt là kho đồ thị và chỉ mục vector. kg_writer ghi xuống knext theo đường vòng bên trái, kag/solver đọc xuống knext theo đường thẳng, knext gọi openspg-server bằng REST. Một hộp LLM và Embedding qua API tương thích OpenAI đặt riêng bên phải, nối bằng nét đứt tới cả kag/builder lẫn kag/solver.">
+    <defs>
+      <marker id="m15n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+      <marker id="m15a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m15g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <!-- ===== PHA OFFLINE ===== -->
+    <rect class="panel" x="30" y="40" width="650" height="160" rx="3"/>
+    <text class="t-head" x="48" y="66">Offline · dựng tri thức</text>
+    <text class="t-tiny" x="48" y="86">chạy một lần · chạy lại khi nguồn đổi</text>
+
+    <rect class="bx-o" x="48" y="110" width="134" height="56" rx="2"/><text class="t-lbl" x="62" y="142">Tài liệu nguồn</text>
+    <rect class="bx-o" x="204" y="110" width="166" height="56" rx="2"/><text class="t-lbl" x="218" y="130">kag/builder</text><text class="t-tiny" x="218" y="147">DefaultUnstructured</text><text class="t-tiny" x="218" y="161">BuilderChain</text>
+    <rect class="bx-o" x="392" y="110" width="148" height="56" rx="2"/><text class="t-lbl" x="406" y="134">batch_vectorizer</text><text class="t-tiny" x="406" y="152">gắn vector</text>
+    <rect class="bx-o" x="562" y="110" width="100" height="56" rx="2"/><text class="t-lbl" x="576" y="142">kg_writer</text>
+
+    <path class="ln" d="M 182 138 L 200 138" marker-end="url(#m15n)"/>
+    <path class="ln" d="M 370 138 L 388 138" marker-end="url(#m15n)"/>
+    <path class="ln" d="M 540 138 L 558 138" marker-end="url(#m15n)"/>
+
+    <!-- ===== PHA ONLINE ===== -->
+    <rect class="panel" x="30" y="240" width="650" height="160" rx="3"/>
+    <text class="t-head" x="48" y="266">Online · trả lời</text>
+    <text class="t-tiny" x="48" y="286">chạy mỗi lần có người hỏi</text>
+
+    <rect class="bx-a" x="48" y="306" width="110" height="56" rx="2"/><text class="t-lbl" x="62" y="338">Câu hỏi</text>
+    <rect class="bx-a" x="190" y="306" width="260" height="56" rx="2"/><text class="t-lbl" x="204" y="327">kag/solver</text><text class="t-tiny" x="204" y="343">kag_static_pipeline</text><text class="t-tiny" x="204" y="357">planner · executor · generator</text>
+    <rect class="bx-a" x="478" y="306" width="130" height="56" rx="2"/><text class="t-lbl" x="492" y="338">Câu trả lời</text>
+
+    <path class="ln-a" d="M 158 334 L 186 334" marker-end="url(#m15a)"/>
+    <path class="ln-a" d="M 450 334 L 474 334" marker-end="url(#m15a)"/>
+
+    <!-- ===== TẦNG GIỮA ===== -->
+    <text class="t-tiny" x="30" y="440">TẦNG GIỮA · KHÔNG THUỘC PHA NÀO</text>
+    <rect class="bx" x="250" y="462" width="190" height="52" rx="2"/><text class="t-lbl" x="264" y="483">knext</text><text class="t-tiny" x="264" y="500">REST client + CLI</text>
+    <rect class="bx" x="500" y="462" width="190" height="52" rx="2"/><text class="t-lbl" x="514" y="483">openspg-server</text><text class="t-tiny" x="514" y="500">Docker</text>
+
+    <rect class="panel" x="720" y="452" width="200" height="150" rx="3"/>
+    <text class="t-head" x="734" y="444">Hai kho tách biệt</text>
+    <rect class="bx-g" x="736" y="470" width="168" height="46" rx="2"/><text class="t-lbl" x="750" y="498">Kho đồ thị</text>
+    <rect class="bx-g" x="736" y="540" width="168" height="46" rx="2"/><text class="t-lbl" x="750" y="568">Chỉ mục vector</text>
+
+    <!-- ===== CẠNH NỐI ===== -->
+    <!-- ghi: kg_writer vòng xuống theo hành lang trái, tránh khung Online -->
+    <path class="ln-a" d="M 616 166 L 616 212 L 16 212 L 16 488 L 246 488" marker-end="url(#m15a)"/>
+    <text class="t-tiny" x="624" y="206">ghi</text>
+    <!-- đọc: solver xuống thẳng knext -->
+    <path class="ln-a" d="M 290 362 L 290 460" marker-end="url(#m15a)"/>
+    <text class="t-tiny" x="298" y="414">đọc</text>
+    <!-- knext -> openspg-server -->
+    <path class="ln" d="M 440 488 L 496 488" marker-end="url(#m15n)"/>
+    <text class="t-tiny" x="450" y="480">REST</text>
+    <!-- openspg-server -> hai kho -->
+    <path class="ln" d="M 690 480 L 706 480 L 706 493 L 732 493" marker-end="url(#m15n)"/>
+    <path class="ln" d="M 690 496 L 700 496 L 700 563 L 732 563" marker-end="url(#m15n)"/>
+
+    <!-- ===== LLM ===== -->
+    <rect class="bx-g" x="700" y="40" width="220" height="66" rx="2"/>
+    <text class="t-lbl" x="716" y="66">LLM + Embedding</text>
+    <text class="t-tiny" x="716" y="84">API tương thích OpenAI</text>
+    <text class="t-tiny" x="716" y="98">gọi qua mạng</text>
+
+    <path class="ln-dash" d="M 750 40 L 750 22 L 340 22 L 340 108" marker-end="url(#m15g)"/>
+    <text class="t-tiny" x="296" y="16">gọi khi build</text>
+    <path class="ln-dash" d="M 860 106 L 860 228 L 350 228 L 350 304" marker-end="url(#m15g)"/>
+    <text class="t-tiny" x="766" y="222">gọi khi hỏi</text>
+
+    <text class="t-tiny" x="30" y="630">ĐỌC HÌNH · nét liền là đường dữ liệu, nét đứt là lời gọi ra dịch vụ mô hình ngoài.</text>
+  </svg>
+  </div>
+  <figcaption><strong>Hai pha, một tầng giữa, hai kho.</strong> Pha offline biến tài liệu thành tri thức và chỉ chạy lại khi nguồn đổi; pha online chỉ đọc. Cả hai không nói chuyện thẳng với kho: <span class="mono">kg_writer</span> ghi xuống qua <span class="mono">knext</span>, <span class="mono">kag/solver</span> đọc lên cũng qua <span class="mono">knext</span>, rồi <span class="mono">knext</span> gọi <span class="mono">openspg-server</span> bằng REST. Không có mũi tên hai chiều trực tiếp nào giữa solver và kho dữ liệu, vì đường đi thật luôn vòng qua hai mắt đó. <span class="mono">knext</span> là ranh giới chính nhưng <strong>không tuyệt đối</strong>: <span class="mono">kag/common/graphstore/neo4j_graph_store.py</span> import thẳng driver <span class="mono">neo4j</span> và tự mở kết nối, dùng cho nhánh local và benchmark nên vẫn chạm được kho mà bỏ qua <span class="mono">knext</span>. Hộp LLM và Embedding đặt riêng vì nó không thuộc tiến trình nào của KAG: cả hai pha đều gọi nó qua mạng, và đổi nhà cung cấp chỉ là đổi địa chỉ cùng khóa API.</figcaption>
+  </figure>
 </section>
 
 </div>

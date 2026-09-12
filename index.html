@@ -33,6 +33,7 @@
     <li><a href="#s7"><em>08</em><span>Dùng hay không dùng</span></a></li>
     <li><a href="#s8"><em>09</em><span>Đụng vào file nào</span></a></li>
     <li><a href="cau-truc-va-luong.html"><em>&rarr;</em><span>Cấu trúc và luồng chạy KAG</span></a></li>
+    <li><a href="cai-tien-solver.html"><em>&rarr;</em><span>Cải tiến vòng lặp solver</span></a></li>
   </ul>
   <div class="rail-foot">
     mã: OpenSPG/KAG 0.8.0<br>
@@ -405,9 +406,10 @@ top_data = scores.topk(k=min(topk, len(scores)), dim=0)</code></pre>
 <!-- ============ 04 ============ -->
 <section id="s4">
   <div class="sec-head"><span class="sec-num">04</span><h2>Dựng knowledge graph</h2></div>
-  <p class="sec-sub">Đây là phần cốt lõi. Bấm qua từng bước để xem một điều luật thật biến thành node và cạnh như thế nào. Chấm đỏ đánh dấu bước có gọi LLM. Mọi khối mã đều ghi rõ nguồn gốc theo bốn nhãn: <em>từ repo</em>, <em>từ bộ dữ liệu</em>, <em>viết cho dự án này</em>, <em>minh họa</em>.</p>
+  <p class="sec-sub">Cả mục này là một cung đường liền mạch: khởi đầu là một kho trống cộng một file schema, kết thúc là một đồ thị có node, có cạnh và có vector. Tám bước ở giữa chính là đường đi, và dải trạng thái ngay trên cụm tab cho thấy đồ thị lớn dần tới đâu sau mỗi bước. Bấm qua từng bước để xem một điều luật thật biến thành node và cạnh như thế nào. Chấm đỏ đánh dấu bước có gọi LLM. Mọi khối mã đều ghi rõ nguồn gốc theo bốn nhãn: <em>từ repo</em>, <em>từ bộ dữ liệu</em>, <em>viết cho dự án này</em>, <em>minh họa</em>.</p>
 
   <h3>Bước 0 — Schema có trước, dữ liệu có sau</h3>
+  <p class="col">Schema không phải một trạm nữa nằm đầu dây chuyền rồi thôi. Nó là cái khuôn áp lên <strong>mọi</strong> bước phía sau: nó nằm trong prompt của bước NER, nó quyết định property nào được embed ở bước vectorizer, và nó là thứ writer đối chiếu khi ghi. Đó là lý do nó mang số 0 chứ không phải số 1 — nó có mặt ở khắp đường đi, không đứng ở một chỗ.</p>
   <p class="col">Trước khi đọc bất kỳ văn bản nào, phải có người viết ra khuôn. Dưới đây là schema rút gọn cho bộ dữ liệu luật, viết theo đúng cú pháp DSL của OpenSPG. Chú ý: mọi property đều chỉ đích danh kiểu ở đầu bên kia, chứ không phải chuỗi tự do.</p>
 
 <pre><code>namespace Legal
@@ -517,6 +519,113 @@ LoaiVanBan(Loại văn bản): ConceptType
     <p style="margin-top:10px"><span class="mono">conHieuLuc</span> tồn tại như một property riêng, tách khỏi <span class="mono">noiDung</span>. Đây là chỗ mà không hệ RAG thuần nào chạm tới được, vì thông tin đó không nằm trong chữ của điều luật mà nằm trong hồ sơ về điều luật.</p>
   </div>
 
+  <figure class="wide">
+  <svg class="dg" viewBox="0 0 940 316" role="img" aria-label="Dải trạng thái chạy suốt tám bước, đọc từ trái sang phải. Tám cột ứng đúng tám tab bên dưới: cột 01 là scanner và reader, 02 là splitter, 03 là NER, 04 là std, 05 là triple, 06 là assemble, 07 là vectorizer, 08 là writer. Tầng trên ghi vật đang cầm sau mỗi bước: cột 01 đối tượng Chunk chứa cả văn bản, đọc từ file md; cột 02 nhiều Chunk mỗi điều một cái; cột 03 danh sách thực thể có kiểu; cột 04 danh sách tên chính thức; cột 05 danh sách triple; cột 06 SubGraph có cả node chunk lẫn cạnh source; cột 07 subgraph có thêm property vector; cột 08 đã nằm trong kho với node, cạnh và vector. Quy tắc màu: ô đỏ là ô do một lần gọi LLM sinh ra, tức cột 03, 04, 05, cộng thêm ô cột 08 vì đó là ô đã ghi vào kho; các cột còn lại tô xanh nhạt. Ba mũi tên đỏ nằm ở ba khe dẫn vào cột 03, 04 và 05, đánh dấu ba bước có gọi LLM là NER, std và triple. Tầng dưới ghi đồ thị đã có gì sau mỗi bước: bảy ô đầu tô xanh nhạt và đều ghi là đồ thị còn trống, chưa có node nào nằm trong kho; chỉ ô thứ tám, tô đỏ, ghi là đã ghi, với node và cạnh">
+    <defs>
+      <marker id="d10g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+      <marker id="d10r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <text class="t-tiny" x="20" y="24">TẦNG TRÊN · VẬT ĐANG CẦM</text>
+    <text class="t-tiny" x="20" y="192">TẦNG DƯỚI · ĐỒ THỊ ĐÃ CÓ GÌ</text>
+
+    <rect class="bx-g" x="20" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="34" y="58">đối tượng</text>
+    <text class="t-lbl" x="34" y="74">Chunk</text>
+    <text class="t-tiny" x="34" y="94">cả văn bản</text>
+    <text class="t-tiny" x="34" y="110">từ file .md</text>
+    <text class="t-tiny" x="34" y="124">01</text>
+
+    <rect class="bx-g" x="136" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="150" y="60">nhiều Chunk</text>
+    <text class="t-tiny" x="150" y="80">mỗi điều</text>
+    <text class="t-tiny" x="150" y="96">một cái</text>
+    <text class="t-tiny" x="150" y="118">02</text>
+
+    <rect class="bx-a" x="252" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="266" y="60">thực thể</text>
+    <text class="t-lbl" x="266" y="76">có kiểu</text>
+    <text class="t-tiny" x="266" y="96">HanhVi, CheTai</text>
+    <text class="t-tiny" x="266" y="118">03</text>
+
+    <rect class="bx-a" x="368" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="382" y="60">tên chính</text>
+    <text class="t-lbl" x="382" y="76">thức</text>
+    <text class="t-tiny" x="382" y="96">một tên chung</text>
+    <text class="t-tiny" x="382" y="118">04</text>
+
+    <rect class="bx-a" x="484" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="498" y="60">danh sách</text>
+    <text class="t-lbl" x="498" y="76">triple</text>
+    <text class="t-tiny" x="498" y="96">S, P, O</text>
+    <text class="t-tiny" x="498" y="118">05</text>
+
+    <rect class="bx-g" x="600" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="614" y="60">SubGraph</text>
+    <text class="t-tiny" x="614" y="80">node chunk</text>
+    <text class="t-tiny" x="614" y="96">+ cạnh source</text>
+    <text class="t-tiny" x="614" y="118">06</text>
+
+    <rect class="bx-g" x="716" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="730" y="60">subgraph</text>
+    <text class="t-tiny" x="730" y="80">+ property</text>
+    <text class="t-tiny" x="730" y="96">vector</text>
+    <text class="t-tiny" x="730" y="118">07</text>
+
+    <rect class="bx-a" x="832" y="36" width="104" height="92" rx="3"/>
+    <text class="t-lbl" x="846" y="60">đã nằm</text>
+    <text class="t-lbl" x="846" y="76">trong kho</text>
+    <text class="t-tiny" x="846" y="96">node · cạnh</text>
+    <text class="t-tiny" x="846" y="110">· vector</text>
+    <text class="t-tiny" x="846" y="124">08</text>
+
+    <line class="ln-g" x1="124" y1="82" x2="134" y2="82" marker-end="url(#d10g)"/>
+    <line class="ln-a" x1="240" y1="82" x2="250" y2="82" marker-end="url(#d10r)"/>
+    <line class="ln-a" x1="356" y1="82" x2="366" y2="82" marker-end="url(#d10r)"/>
+    <line class="ln-a" x1="472" y1="82" x2="482" y2="82" marker-end="url(#d10r)"/>
+    <line class="ln-g" x1="588" y1="82" x2="598" y2="82" marker-end="url(#d10g)"/>
+    <line class="ln-g" x1="704" y1="82" x2="714" y2="82" marker-end="url(#d10g)"/>
+    <line class="ln-g" x1="820" y1="82" x2="830" y2="82" marker-end="url(#d10g)"/>
+
+    <rect class="bx-g" x="20" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="72" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="72" y="246" text-anchor="middle">0 node</text>
+
+    <rect class="bx-g" x="136" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="188" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="188" y="246" text-anchor="middle">0 node</text>
+
+    <rect class="bx-g" x="252" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="304" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="304" y="246" text-anchor="middle">0 node</text>
+
+    <rect class="bx-g" x="368" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="420" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="420" y="246" text-anchor="middle">0 node</text>
+
+    <rect class="bx-g" x="484" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="536" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="536" y="246" text-anchor="middle">0 node</text>
+
+    <rect class="bx-g" x="600" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="652" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="652" y="246" text-anchor="middle">0 node</text>
+
+    <rect class="bx-g" x="716" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="768" y="228" text-anchor="middle">TRỐNG</text>
+    <text class="t-tiny" x="768" y="246" text-anchor="middle">chỉ trong RAM</text>
+
+    <rect class="bx-a" x="832" y="204" width="104" height="56" rx="3"/>
+    <text class="t-lbl" x="884" y="220" text-anchor="middle">ĐÃ GHI</text>
+    <text class="t-tiny" x="884" y="238" text-anchor="middle">node · cạnh</text>
+    <text class="t-tiny" x="884" y="252" text-anchor="middle">· vector</text>
+
+    <text class="t-tiny" x="20" y="286">BA LẦN GỌI LLM Ở CỘT 03, 04, 05 KHÔNG TẠO RA ĐỒ THỊ. CHÚNG CHỈ TẠO RA DỮ LIỆU TRONG BỘ NHỚ.</text>
+    <text class="t-tiny" x="20" y="304">CỘT 01–02 CŨNG CHƯA GHI GÌ. ĐỒ THỊ CHỈ SINH RA Ở CỘT 08, SAU WRITER.</text>
+  </svg>
+  <figcaption><strong>Tám bước, nhưng đồ thị chỉ sinh ra ở bước cuối.</strong> Mỗi cột đọc thẳng xuống tab cùng số: cột 01 là scanner và reader, cột 04 là std, cột 08 là writer. Hàng trên là vật đang cầm sau bước đó, hàng dưới là đồ thị đã có gì. Bảy ô đầu của hàng dưới đều ghi <em>trống</em> — kể cả cột 03, 04 và 05, vì ba lần gọi LLM chỉ dựng dữ liệu trong bộ nhớ, chưa ghi gì vào kho. Chỉ tới cột 08, sau <span class="mono">kg_writer</span>, mới thật sự có node, cạnh và vector nằm trong kho.</figcaption>
+  </figure>
+
   <div class="steps" role="tablist" aria-label="Các bước dựng index">
     <button role="tab" id="k0" aria-controls="b0" aria-selected="true">01 · scanner + reader</button>
     <button role="tab" id="k1" aria-controls="b1" aria-selected="false">02 · splitter</button>
@@ -572,13 +681,16 @@ quan, tổ chức, cá nhân có liên quan.
 <pre><code>splitter:
   type: pattern_splitter
   pattern_dict:
-    pattern: "####\\s*Điều\\s+(\\d+)\\.\\s*([^\\n]+)\\n(.*?)(?=####\\s*Điều|\\Z)"
+    pattern: "####\\s*(Điều\\s+\\d+\\.\\s*[^\\n]+)\\n(.*?)(?=####\\s*Điều|\\Z)"
     group:
-      header: 2
-      name: 2
+      header: 1
+      name: 1
       content: 0</code></pre>
-    <span class="src">viết cho dự án này · cấu trúc <span class="mono">pattern_dict</span> lấy từ docstring của kag/builder/component/splitter/pattern_splitter.py</span>
-    <p>Kết quả: <strong>một điều là một chunk</strong>, tên chunk là tiêu đề điều. Cả kho 46 văn bản tách ra thành hàng nghìn chunk cỡ vài nghìn ký tự.</p>
+    <span class="src">viết cho dự án này · cấu trúc <span class="mono">pattern_dict</span> và cách đọc ba khoá <span class="mono">header</span>, <span class="mono">name</span>, <span class="mono">content</span> lấy từ kag/builder/component/splitter/pattern_splitter.py:168-171</span>
+    <p>Ba khoá trong <span class="mono">group</span> là <strong>chỉ số nhóm bắt</strong> của regex, đếm từ 1, còn <span class="mono">0</span> là cả dòng khớp. Cả ba được truyền thẳng vào <span class="mono">match.group(...)</span>, nên ghi sai số là tên chunk sai ngay.</p>
+    <p>Nhóm một ôm trọn cụm <span class="mono">Điều 34. Tiêu đề điều</span>, nên <span class="mono">name</span> giữ được cả số điều. Đó là điều kiện để tên chunk dẫn được: bỏ số điều ra khỏi tên thì cạnh <span class="mono">source</span> chỉ còn trỏ tới “Tiêu đề điều”, mất luôn căn cứ pháp lý.</p>
+    <p>Riêng <span class="mono">content</span> trỏ vào nhóm <span class="mono">0</span>, tức là lấy <strong>cả dòng tiêu đề lẫn thân điều</strong>. Đây là lựa chọn cố ý: thân điều thường xuyên nhắc lại số điều bằng chữ, và giữ tiêu đề trong nội dung chunk thì phần vector hóa và phần LLM đọc đều thấy được ngữ cảnh điều khoản.</p>
+    <p>Kết quả: <strong>một điều là một chunk</strong>, tên chunk là tiêu đề điều kèm số điều. Cả kho 46 văn bản tách ra thành hàng nghìn chunk cỡ vài nghìn ký tự.</p>
     <div class="callout">
       <span class="k">Bài học đem đi chỗ khác</span>
       <p>Kích thước chunk không phải tham số kỹ thuật vô thưởng vô phạt. Với luật, nó còn quyết định <strong>đơn vị trích dẫn</strong>. Cắt giữa một điều thì câu trả lời không dẫn được “Điều 34 khoản 2 điểm c” nữa, mà chỉ dẫn được “một đoạn trong Nghị định 330”. Với tư vấn pháp luật, hai thứ đó khác nhau hoàn toàn.</p>
@@ -646,7 +758,13 @@ output: [
         <span class="src">minh họa · đây là kết quả điển hình, không phải log chạy thật</span>
       </div>
     </div>
-    <p class="note">Mọi <span class="mono">category</span> đều phải là một trong các kiểu đã khai báo. Thứ gì LLM tìm ra mà không khớp kiểu nào sẽ bị gán nhãn <span class="mono">Others</span> ở bản schema-free, hoặc bị loại ở bản schema-constraint. Với dữ liệu luật nên chọn bản schema-constraint, vì bạn đã có schema và không muốn đồ thị mọc thêm kiểu lạ.</p>
+    <p class="note">Mọi <span class="mono">category</span> đều phải là một trong các kiểu đã khai báo. Thứ gì LLM tìm ra mà không khớp kiểu nào sẽ bị gán nhãn <span class="mono">Others</span> ở bản schema-free, hoặc bị loại ở bản schema-constraint.</p>
+    <div class="callout">
+      <span class="k">Đừng bật schema-constraint ngay từ lần chạy đầu</span>
+      <p>Bản schema-constraint tra kiểu bằng <span class="mono">self.schema.get(s_label)</span> (<span class="mono">schema_constraint_extractor.py:335</span>). Hàm <span class="mono">get</span> này <strong>ném lỗi</strong> khi nhãn không tồn tại: <span class="mono">raise ValueError(f"{spg_type_name} is not existed")</span> (<span class="mono">knext/schema/client.py:76</span>).</p>
+      <p style="margin-top:10px">Xung quanh chỗ đó không có <span class="mono">try/except</span> nào che. <span class="mono">assemble_subgraph</span> (<span class="mono">schema_constraint_extractor.py:442</span>) gọi thẳng xuống, và <span class="mono">default_chain.py:189</span> lấy kết quả bằng <span class="mono">inner_future.result()</span> nên lỗi nổi lên và làm hỏng cả chunk đó. Lỗi hay gặp nhất là schema chưa được commit, hoặc LLM trả về <span class="mono">category</span> lệch một chữ so với file schema.</p>
+      <p style="margin-top:10px">Vì vậy hãy đi hai nhịp. <strong>Nhịp một:</strong> dựng bằng <span class="mono">schema_free_extractor</span> trên đúng <em>một</em> file, để chạy thông cả dây chuyền từ scanner tới writer. <strong>Nhịp hai:</strong> mở giao diện web ở <span class="mono">127.0.0.1:8887</span>, xem đã có node và cạnh thật chưa, rồi mới đổi sang <span class="mono">schema_constraint_extractor</span>. Dây chuyền đã thông rồi thì khi đổi extractor mà gặp lỗi, bạn biết chắc thủ phạm nằm ở schema chứ không phải ở cấu hình đường dẫn.</p>
+    </div>
   </div>
 
   <div class="step-body" id="b3" role="tabpanel" aria-labelledby="k3" hidden>
@@ -766,8 +884,10 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
       <p>Gộp theo vector similarity là đúng cho “thuốc an thần” với “thuốc trấn tĩnh”. Nó là sai cho “Luật An ninh mạng 2018” với “Luật An ninh mạng 2025”, hai chuỗi có vector rất gần nhau nhưng là hai văn bản đối lập nhau về hiệu lực. Nếu bật bước gộp này, nên loại kiểu <span class="mono">VanBan</span> ra khỏi phạm vi gộp.</p>
     </div>
     <div class="callout">
-      <span class="k">Chạy lại không tốn tiền lại</span>
-      <p>Mỗi component kiểm tra checkpoint theo hash nội dung trước khi tính. Build đứt giữa chừng thì chạy lại chỉ xử lý phần chưa xong. Với một kho 46 văn bản luật, đây là khác biệt giữa vài chục đô và vài trăm đô.</p>
+      <span class="k">Chạy lại: chỉ đường stream mới bỏ qua được</span>
+      <p>Đường mà <span class="mono">indexer.py</span> của các ví dụ đang dùng là <span class="mono">BuilderChainRunner</span>, gọi bằng <span class="mono">runner.invoke(dir_path)</span>. Trong hàm <span class="mono">BuilderChainRunner.invoke</span>, dòng kiểm tra <span class="mono">self.checkpointer.exists(item_id)</span> <strong>đang bị comment</strong> (<span class="mono">kag/builder/runner.py:145-146</span>). Nghĩa là mọi file đều được đẩy vào xử lý, không có gì bị bỏ qua. Build đứt giữa chừng rồi chạy lại thì <strong>tốn tiền LLM lại từ đầu</strong>.</p>
+      <p style="margin-top:10px">Chỉ <span class="mono">BuilderChainStreamRunner</span> (<span class="mono">kag/builder/runner.py:295</span>) mới bỏ qua thật. Nó giữ một checkpointer kiểu <span class="mono">diskcache</span> (<span class="mono">runner.py:339-346</span>), đọc <span class="mono">self.processed_chunks.keys()</span> rồi truyền xuống chain qua tham số <span class="mono">processed_chunk_keys</span> (<span class="mono">runner.py:365</span>). Ở <span class="mono">kag/builder/default_chain.py:165-172</span>, chunk nào có <span class="mono">hash_key</span> đã nằm trong tập đó thì bị lọc ra trước khi gọi LLM. Cái được nhớ là <strong>từng chunk</strong>, không phải từng file.</p>
+      <p style="margin-top:10px">Với một kho 46 văn bản luật, đây là khác biệt giữa vài chục đô và vài trăm đô. Nhưng chỉ khi bạn chạy qua <span class="mono">BuilderChainStreamRunner</span>, tức là chạy bằng <span class="mono">kag/builder/main_builder.py</span>; còn <span class="mono">indexer.py</span> như trong ví dụ thì không.</p>
     </div>
   </div>
 
@@ -834,6 +954,88 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
     <text class="t-tiny" x="26" y="316">CẠNH SOURCE · MUTUAL INDEX · HAI VĂN BẢN, MỘT ĐỒ THỊ</text>
   </svg>
   <figcaption><strong>Một điều khoản, một subgraph.</strong> Cạnh liền đỏ là quan hệ có tên lấy thẳng từ schema. Cạnh đứt xanh là <span class="mono">source</span>, mọi node đều có một cạnh như vậy trỏ xuống điều khoản gốc. Node <span class="mono">VanBan</span> mang property <span class="mono">conHieuLuc</span>, nên câu hỏi có thể lọc theo hiệu lực ngay trên đồ thị. Cạnh <span class="mono">canCuTai</span> là chỗ nghị định xử phạt nối ngược về điều cấm trong luật gốc, tức là chỗ đồ thị bắc qua ranh giới hai văn bản.</figcaption>
+  </figure>
+
+  <h3>Từ nhiều mảnh thành một đồ thị</h3>
+  <p class="col">Ba cột hàng trên của hình dưới là ba lần chạy khác nhau, trên hai văn bản khác nhau, mỗi lần ra một subgraph rời. Nhìn riêng thì chúng chẳng liên quan gì tới nhau. Nhưng cả ba đều sinh ra một node cùng tên chính thức <span class="mono">Luật An ninh mạng số 116/2025/QH15</span>, và đó là điểm gặp. Đồ thị tri thức không phải phép cộng của các subgraph rời: nó thành hình đúng lúc những node trùng tên chính thức <strong>nhập làm một</strong>.</p>
+  <p class="col">Khoá gộp chính là <span class="mono">official_name</span> do bước <span class="mono">std</span> sinh ra ở tab 04. Ba cách gọi “Luật ANM”, “Luật này”, “Luật số 116” bị bước đó kéo về cùng một tên, nên ba node rời trở thành một. Đây là lý do bước <span class="mono">std</span>, thứ GraphRAG không có, mới là bước quyết định đồ thị có liền mạch hay vỡ vụn: gộp đúng thì ba điều khoản nối về một văn bản, gộp nhầm thì hai văn bản khác nhau dính vào nhau và mất luôn khả năng lọc hiệu lực. Đó đúng là chỗ mà callout <em>Con dao hai lưỡi, đọc kỹ</em> ở tab 04 cảnh báo.</p>
+
+  <figure class="wide">
+  <svg class="dg" viewBox="0 0 940 400" role="img" aria-label="Ba điều khoản thuộc hai văn bản khác nhau ở hàng trên, mỗi cái là một subgraph rời. Điều 34 Nghị định 330, Điều 7 Luật 116 và Điều 22 Nghị định 331 đều sinh ra một node mang cùng tên chính thức là Luật An ninh mạng số 116 trên 2025 QH15. Ba node trùng đó nhập làm một ở hàng dưới, và node chung ấy có ba cạnh đi ra ba điều khoản khác nhau. Các hộp xanh là node thực thể, hộp đỏ là node tên chính thức được gộp, đường nét đứt là cạnh source">
+    <defs>
+      <marker id="d11g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+      <marker id="d11r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <text class="t-tiny" x="20" y="24">BA LƯỢT CHẠY RIÊNG · BA SUBGRAPH RỜI NHAU</text>
+
+    <!-- three separate subgraphs, top row -->
+    <rect class="panel" x="16" y="38" width="288" height="132" rx="3"/>
+    <text class="t-tiny" x="30" y="58">SUBGRAPH 1 · NĐ 330</text>
+    <rect class="bx" x="34" y="70" width="116" height="40" rx="2"/>
+    <text class="t-lbl" x="92" y="88" text-anchor="middle">Điều 34</text>
+    <text class="t-tiny" x="92" y="102" text-anchor="middle">DieuKhoan</text>
+    <line class="ln-g" x1="150" y1="90" x2="170" y2="90" marker-end="url(#d11g)"/>
+    <rect class="bx-g" x="174" y="70" width="116" height="40" rx="2"/>
+    <text class="t-lbl" x="232" y="88" text-anchor="middle">Luật ANM</text>
+    <text class="t-tiny" x="232" y="102" text-anchor="middle">VanBan</text>
+    <line class="ln-dash" x1="92" y1="110" x2="92" y2="140" marker-end="url(#d11g)"/>
+    <rect class="bx" x="34" y="140" width="116" height="24" rx="2"/>
+    <text class="t-tiny" x="92" y="156" text-anchor="middle">Chunk · Điều 34</text>
+
+    <rect class="panel" x="326" y="38" width="288" height="132" rx="3"/>
+    <text class="t-tiny" x="340" y="58">SUBGRAPH 2 · LUẬT 116</text>
+    <rect class="bx" x="344" y="70" width="116" height="40" rx="2"/>
+    <text class="t-lbl" x="402" y="88" text-anchor="middle">Điều 7</text>
+    <text class="t-tiny" x="402" y="102" text-anchor="middle">DieuKhoan</text>
+    <line class="ln-g" x1="460" y1="90" x2="480" y2="90" marker-end="url(#d11g)"/>
+    <rect class="bx-g" x="484" y="70" width="116" height="40" rx="2"/>
+    <text class="t-lbl" x="542" y="88" text-anchor="middle">Luật này</text>
+    <text class="t-tiny" x="542" y="102" text-anchor="middle">VanBan</text>
+    <line class="ln-dash" x1="402" y1="110" x2="402" y2="140" marker-end="url(#d11g)"/>
+    <rect class="bx" x="344" y="140" width="116" height="24" rx="2"/>
+    <text class="t-tiny" x="402" y="156" text-anchor="middle">Chunk · Điều 7</text>
+
+    <rect class="panel" x="636" y="38" width="288" height="132" rx="3"/>
+    <text class="t-tiny" x="650" y="58">SUBGRAPH 3 · NĐ 331</text>
+    <rect class="bx" x="654" y="70" width="116" height="40" rx="2"/>
+    <text class="t-lbl" x="712" y="88" text-anchor="middle">Điều 22</text>
+    <text class="t-tiny" x="712" y="102" text-anchor="middle">DieuKhoan</text>
+    <line class="ln-g" x1="770" y1="90" x2="790" y2="90" marker-end="url(#d11g)"/>
+    <rect class="bx-g" x="794" y="70" width="116" height="40" rx="2"/>
+    <text class="t-lbl" x="852" y="88" text-anchor="middle">Luật số 116</text>
+    <text class="t-tiny" x="852" y="102" text-anchor="middle">VanBan</text>
+    <line class="ln-dash" x1="712" y1="110" x2="712" y2="140" marker-end="url(#d11g)"/>
+    <rect class="bx" x="654" y="140" width="116" height="24" rx="2"/>
+    <text class="t-tiny" x="712" y="156" text-anchor="middle">Chunk · Điều 22</text>
+
+    <text class="t-tiny" x="20" y="188">BƯỚC STD KÉO BA CÁCH GỌI VỀ CÙNG MỘT TÊN CHÍNH THỨC</text>
+
+    <path class="ln-a" d="M 232 112 L 232 212 L 410 212 L 410 240" marker-end="url(#d11r)"/>
+    <line class="ln-a" x1="470" y1="184" x2="470" y2="240" marker-end="url(#d11r)"/>
+    <path class="ln-a" d="M 852 112 L 852 212 L 530 212 L 530 240" marker-end="url(#d11r)"/>
+
+    <!-- the merged node -->
+    <rect class="bx-a" x="290" y="244" width="360" height="48" rx="3"/>
+    <text class="t-lbl" x="470" y="264" text-anchor="middle">Luật An ninh mạng số 116/2025/QH15</text>
+    <text class="t-tiny" x="470" y="280" text-anchor="middle">MỘT NODE · BA ĐƯỜNG VÀO GỘP LÀM MỘT</text>
+
+    <text class="t-tiny" x="20" y="322">SAU KHI GỘP · MỘT VĂN BẢN, BA ĐIỀU KHOẢN NỐI VỀ NÓ</text>
+
+    <line class="ln-a" x1="380" y1="292" x2="150" y2="344" marker-end="url(#d11r)"/>
+    <line class="ln-a" x1="470" y1="292" x2="470" y2="344" marker-end="url(#d11r)"/>
+    <line class="ln-a" x1="560" y1="292" x2="790" y2="344" marker-end="url(#d11r)"/>
+
+    <rect class="bx" x="40" y="348" width="212" height="36" rx="2"/>
+    <text class="t-lbl" x="146" y="371" text-anchor="middle">Điều 34 · NĐ 330</text>
+
+    <rect class="bx" x="364" y="348" width="212" height="36" rx="2"/>
+    <text class="t-lbl" x="470" y="371" text-anchor="middle">Điều 7 · Luật 116</text>
+
+    <rect class="bx" x="688" y="348" width="212" height="36" rx="2"/>
+    <text class="t-lbl" x="794" y="371" text-anchor="middle">Điều 22 · NĐ 331</text>
+  </svg>
+  <figcaption><strong>Đồ thị thành hình ở chỗ các node gộp lại.</strong> Ba lượt chạy trên hai văn bản khác nhau sinh ra ba subgraph rời, nhưng cả ba đều mang một node cùng tên chính thức. Bước <span class="mono">std</span> kéo ba cách gọi về cùng một chuỗi, nên ba node nhập làm một và node chung ấy có ba cạnh đi ra ba điều khoản. Không có bước đó thì đây chỉ là một đống mảnh vụn, mỗi mảnh biết một văn bản riêng.</figcaption>
   </figure>
 
   <h3>Đường thứ hai: dữ liệu đã có cấu trúc</h3>
@@ -910,6 +1112,192 @@ def assemble_sub_graph_with_chunk(sub_graph: SubGraph, chunk: Chunk):
   </svg>
   <figcaption><strong>Hai đường vào cùng một kho.</strong> Nội dung điều khoản phải qua bốn lần gọi LLM. Mạng lưới quan hệ giữa các văn bản, vốn đã nằm trong metadata, đi thẳng và miễn phí. Cả hai gặp nhau ở <span class="mono">kg_writer</span> và được ghi một lần duy nhất, vì vector đã nằm sẵn trong property của node.</figcaption>
   </figure>
+
+  <p class="col">Chỗ dễ hiểu nhầm là “một lần ghi”. Đúng ở kho đích, sai ở cách chạy. Hai đường này là <strong>hai lượt chạy riêng biệt</strong>, do <strong>hai chain khác nhau</strong> thực hiện, đọc từ <strong>hai khoá config khác nhau</strong>. Chúng chỉ chung một server OpenSPG để ghi vào, chứ không nằm trong cùng một lần gọi.</p>
+  <p class="col">Lý do nằm ở <span class="mono">kag/builder/main_builder.py:31</span>: hàm dựng runner chỉ đọc đúng một khoá là <span class="mono">kag_builder_pipeline</span>. Khoá đó chứa <strong>một</strong> chain. Muốn chạy đường thứ hai thì phải khai thêm một khoá cấp cao nhất nữa và gọi runner thêm một lần.</p>
+  <p class="col">Ví dụ medicine trong repo làm đúng như vậy: file config khai ba khoá cấp cao nhất là <span class="mono">extract_runner</span>, <span class="mono">spg_runner</span> và <span class="mono">spo_runner</span>; còn <span class="mono">kag/examples/medicine/builder/indexer.py</span> dựng runner riêng cho từng khoá và gọi <span class="mono">invoke</span> ở ba chỗ, trong đó một chỗ nằm trong vòng lặp hai phần tử. Hệ quả là bốn lượt chạy độc lập. Dưới đây là nguyên văn khoá của đường dữ liệu có cấu trúc, tức đường mà bạn sẽ dùng cho metadata luật:</p>
+<pre><code>spo_runner:
+  chain:
+    mapping:
+      o_id_col: O
+      p_type_col: P
+      s_id_col: S
+      sub_property_col: properties
+      type: spo_mapping # kag.builder.component.mapping.spo_mapping.SPOMapping
+    type: structured_builder_chain # kag.builder.default_chain.DefaultStructuredBuilderChain
+    writer:
+      type: kg_writer # kag.builder.component.writer.kg_writer.KGWriter
+  scanner:
+    type: csv_scanner # kag.builder.component.scanner.csv_scanner.CSVScanner</code></pre>
+  <span class="src">từ repo · kag/examples/medicine/kag_config.yaml:80-92, trích nguyên khối</span>
+
+  <details>
+    <summary>Khi nào bắt tay chạy thật · lệnh và cấu hình</summary>
+    <div class="gbody">
+      <h3>Trước bước 0 — dựng chỗ để chứa đồ thị</h3>
+      <p class="col">Tám bước ở dưới là những gì xảy ra <em>bên trong</em> pipeline. Nhưng để chạy được chúng, bạn phải có một cụm server đang sống, một project đã đăng ký, và một schema đã nằm trên server. Sáu việc dưới đây làm đúng thứ tự đó. Làm xong sáu việc này thì bước 0 mới có chỗ để ghi vào.</p>
+
+      <h4>1. Bật cụm dịch vụ</h4>
+      <p class="col">KAG không tự chạy đồ thị. Nó nói chuyện với một server OpenSPG qua mạng, và server đó được đóng gói sẵn trong Docker Compose. Hai lệnh dưới đây lấy nguyên văn từ Quick Start của repo.</p>
+      <pre><code>curl -sSL https://raw.githubusercontent.com/OpenSPG/openspg/refs/heads/master/dev/release/docker-compose-west.yml -o docker-compose-west.yml
+      docker compose -f docker-compose-west.yml up -d</code></pre>
+      <span class="src">từ repo · README.md:122-123, khối Quick Start</span>
+      <p class="col">Trên Windows cần bật <strong>WSL 2 hoặc Hyper-V</strong> trước, vì Docker Desktop dựa vào một trong hai thứ đó. Repo ghi rõ yêu cầu này ở mục Software Requirements.</p>
+      <span class="src">từ repo · README.md:113</span>
+      <p class="col">Dựng xong, mở trình duyệt tới <span class="mono">http://127.0.0.1:8887</span>. Tài khoản mặc định in ngay trong README: tên đăng nhập <span class="mono">openspg</span>, mật khẩu <span class="mono">openspg@kag</span>.</p>
+      <span class="src">từ repo · README.md:128-131</span>
+
+      <h4>2. Cài KAG ở chế độ dev</h4>
+      <p class="col">Cài từ chính thư mục mã nguồn vừa clone, không phải từ PyPI. Chế độ <span class="mono">-e</span> để sửa file Python là có hiệu lực ngay, không phải cài lại.</p>
+      <pre><code>python -m venv kag-demo
+      kag-demo\Scripts\activate
+      cd KAG &amp;&amp; pip install -e .</code></pre>
+      <span class="src">từ repo · README.md:157-163, phần dành cho Windows, gộp ba dòng lại</span>
+      <p class="col">Cần <strong>Python 3.10 trở lên</strong>. Bản dưới 3.10 sẽ hỏng ngay ở bước cài, vì mã nguồn dùng cú pháp kiểu mới.</p>
+
+      <h4>3. Khuôn thư mục dự án</h4>
+      <p class="col">Repo có sẵn một thư mục mẫu hoàn chỉnh ở <span class="mono">kag/examples/csqa</span>. Cách làm nhanh nhất là chép nguyên nó ra một chỗ khác rồi sửa dần, <strong>không dựng từ số không</strong>. Cây thư mục của nó chỉ có hai tầng:</p>
+      <pre><code>csqa/
+      ├── kag_config.yaml          # toàn bộ cấu hình: model, project, pipeline
+      ├── schema/
+      │   └── CsQa.schema          # file DSL khai các kiểu node và cạnh
+      └── builder/
+        ├── indexer.py           # script chạy dựng đồ thị
+        └── data/                # thư mục chứa văn bản nguồn</code></pre>
+      <span class="src">từ repo · kag/examples/csqa, chép nguyên cấu trúc thư mục</span>
+      <p class="col">Chép xong thì sửa ba chỗ: đổi tên file <span class="mono">.schema</span> cho khớp namespace mới, sửa khối <span class="mono">project</span> trong <span class="mono">kag_config.yaml</span>, và bỏ văn bản mẫu trong <span class="mono">builder/data/</span> để thay bằng dữ liệu của bạn.</p>
+
+      <h4>4. Khối config hoàn chỉnh cho dữ liệu luật</h4>
+      <p class="col">Đây là khối <span class="mono">kag_builder_pipeline</span> viết cho dự án này. Khung lấy từ ví dụ csqa, đổi bốn chỗ cho khớp dữ liệu luật: namespace, scanner, splitter và extractor.</p>
+      <pre><code>project:
+      biz_scene: default
+      host_addr: http://127.0.0.1:8887
+      language: zh
+      namespace: Legal
+
+      kag_builder_pipeline:
+      chain:
+        type: unstructured_builder_chain
+        extractor:
+          type: schema_free_extractor
+          llm: *openie_llm
+        reader:
+          type: md_reader
+        post_processor:
+          type: kag_post_processor
+        splitter:
+          type: pattern_splitter
+          pattern_dict:
+            pattern: "####\\s*(Điều\\s+\\d+\\.\\s*[^\\n]+)\\n(.*?)(?=####\\s*Điều|\\Z)"
+            group:
+              header: 1
+              name: 1
+              content: 0
+        vectorizer:
+          type: batch_vectorizer
+          vectorize_model: *vectorize_model
+        writer:
+          type: kg_writer
+      num_threads_per_chain: 4
+      num_chains: 4
+      scanner:
+        type: dir_file_scanner
+        file_suffix: md</code></pre>
+      <span class="src">viết cho dự án này · khung lấy từ kag/examples/csqa/kag_config.yaml</span>
+      <p class="col">Bốn chỗ đã đổi, và lý do:</p>
+      <ul class="col" style="margin:10px 0 0 20px; font-size:15.5px; line-height:1.7">
+        <li><span class="mono">namespace</span> đổi thành <span class="mono">Legal</span>, khớp dòng đầu file schema.</li>
+        <li><span class="mono">file_suffix</span> khai là <span class="mono">md</span>. Phải khai, vì nếu bỏ trống thì scanner rơi về mẫu mặc định <span class="mono">.*txt$</span>, tức là nó chỉ nhặt file <span class="mono">.txt</span> (<span class="mono">directory_scanner.py:50-54</span>). Dữ liệu luật là file <span class="mono">.md</span>, nên không khai là quét ra rỗng.</li>
+        <li><span class="mono">reader</span> giữ <span class="mono">md_reader</span>, vì dữ liệu luật là file markdown.</li>
+        <li><span class="mono">splitter</span> đổi sang <span class="mono">pattern_splitter</span> kèm <span class="mono">pattern_dict</span>, để cắt theo điều như giải thích ở tab 02.</li>
+        <li><span class="mono">extractor</span> lần đầu để <span class="mono">schema_free_extractor</span>. Lý do nằm ở tab 03: bản constraint sẽ ném lỗi ngay nếu schema chưa khớp, nên lần chạy đầu đi bản free cho chắc.</li>
+      </ul>
+      <p class="col">Hai dòng <span class="mono">*openie_llm</span> và <span class="mono">*vectorize_model</span> là tham chiếu YAML tới các anchor khai ở đầu file, y như trong ví dụ gốc. Bạn vẫn phải điền <span class="mono">api_key</span> thật vào ba khối model đó.</p>
+
+      <h4>5. Đăng ký project với server</h4>
+      <p class="col">Server vừa bật chưa biết gì về project của bạn. Lệnh này đăng ký nó và ghi lại địa chỉ server vào file config, để các lệnh sau khỏi phải truyền lại.</p>
+      <pre><code>knext project restore --host_addr http://127.0.0.1:8887 --proj_path .</code></pre>
+      <span class="src">từ repo · kag/examples/csqa/README.md:43</span>
+
+      <h4>6. Đẩy schema từ ổ cứng lên server</h4>
+      <p class="col">Đây là chỗ file <span class="mono">.schema</span> rời khỏi ổ cứng và đi vào server. Trước lệnh này, server vẫn chưa có kiểu node nào cả, dù file schema đã nằm đó từ lâu.</p>
+      <pre><code>knext schema commit</code></pre>
+      <span class="src">từ repo · kag/examples/csqa/README.md:51</span>
+      <p class="col">Hàm <span class="mono">commit_schema</span> tự ghép đường dẫn file schema từ thư mục project, tên namespace và hằng số <span class="mono">$namespace.schema</span>, rồi gọi <span class="mono">ml.sync_schema()</span> để đẩy lên.</p>
+      <span class="src">từ repo · knext/command/sub_command/schema.py:28-37 và dòng 73 gọi sync_schema</span>
+
+      <div class="callout">
+        <span class="k">Vì sao việc 6 không được bỏ qua</span>
+        <p>Bản extractor có ràng buộc schema đọc schema ngay lúc <strong>dựng đối tượng</strong>, không phải lúc chạy. Trong hàm khởi tạo, nó gọi <span class="mono">SchemaClient(...).load()</span> và cất kết quả vào <span class="mono">self.schema</span>.</p>
+        <p style="margin-top:10px"><span class="mono">kag/builder/component/extractor/schema_constraint_extractor.py:64-67</span> — đúng ba dòng đó. Nếu chưa commit thì <span class="mono">load()</span> trả về schema rỗng. Lúc đó extractor <strong>gãy ngay khi dựng</strong>, chưa kịp đọc một chữ nào trong dữ liệu, và thông báo lỗi sẽ trỏ vào chỗ khởi tạo chứ không trỏ vào schema. Nhìn thì giống lỗi cấu hình model, nhưng thủ phạm thật là việc 6 chưa làm.</p>
+      </div>
+
+      <h4>7. Chạy indexer</h4>
+      <p class="col">Cuối cùng mới chạy dựng đồ thị. Script đọc khoá config và gọi runner:</p>
+      <pre><code>cd builder &amp;&amp; python indexer.py</code></pre>
+      <span class="src">từ repo · kag/examples/csqa/README.md:59</span>
+      <p class="col">Trong <span class="mono">indexer.py</span> của ví dụ, hàm <span class="mono">buildKB</span> đọc khoá <span class="mono">kag_builder_pipeline</span>, dựng runner bằng <span class="mono">BuilderChainRunner.from_config(...)</span>, rồi gọi <span class="mono">runner.invoke(dir_path)</span> với thư mục <span class="mono">data</span> bên cạnh.</p>
+      <span class="src">từ repo · kag/examples/csqa/builder/indexer.py:23-26, dòng 35 truyền thư mục data</span>
+      <p class="col">Chạy xong thì mở lại giao diện web ở cổng 8887 để xem đồ thị. Đây là điểm kiểm tra duy nhất đáng tin: có node, có cạnh, có chunk nằm trong đó hay không.</p>
+
+      <figure class="wide">
+      <svg class="dg" viewBox="0 0 940 380" role="img" aria-label="Sơ đồ tầng vận hành. Bên trái là thư mục dự án trên máy gồm kag_config.yaml, schema và data. Bên phải là cụm Docker gồm server OpenSPG ở cổng 8887 và Neo4j ở cổng 7687. Ba mũi tên đi từ trái sang phải là project restore ở bước 5, schema commit ở bước 6, và kg_writer ghi subgraph. Bên dưới là hai lượt chạy indexer riêng biệt, một lượt cho chain unstructured và một lượt cho chain structured">
+        <defs>
+          <marker id="d8a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+          <marker id="d8g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+          <marker id="d8o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+        </defs>
+
+        <text class="t-tiny" x="24" y="26">MÁY CỦA BẠN</text>
+        <text class="t-tiny" x="600" y="26">CỤM DOCKER · DOCKER COMPOSE</text>
+
+        <rect class="panel" x="20" y="38" width="300" height="228" rx="3"/>
+        <rect class="bx" x="40" y="60" width="260" height="138" rx="3"/>
+        <text class="t-lbl" x="170" y="84" text-anchor="middle">thư mục dự án</text>
+        <text class="t-tiny" x="170" y="102" text-anchor="middle">kag_config.yaml</text>
+        <text class="t-tiny" x="170" y="122" text-anchor="middle">schema/ · Legal.schema</text>
+        <text class="t-tiny" x="170" y="142" text-anchor="middle">data/ · *.md</text>
+        <text class="t-tiny" x="170" y="162" text-anchor="middle">builder/indexer.py</text>
+        <text class="t-tiny" x="170" y="184" text-anchor="middle" style="font-size:9.5px">Ổ CỨNG · CHƯA AI BIẾT</text>
+
+        <rect class="panel" x="588" y="38" width="332" height="228" rx="3"/>
+        <rect class="bx-o" x="612" y="64" width="284" height="76" rx="3"/>
+        <text class="t-lbl" x="754" y="88" text-anchor="middle">server OpenSPG</text>
+        <text class="t-tiny" x="754" y="106" text-anchor="middle">giao diện web · 127.0.0.1:8887</text>
+        <text class="t-tiny" x="754" y="124" text-anchor="middle">chứa schema + đồ thị</text>
+        <rect class="bx-g" x="612" y="160" width="284" height="76" rx="3"/>
+        <text class="t-lbl" x="754" y="184" text-anchor="middle">Neo4j</text>
+        <text class="t-tiny" x="754" y="202" text-anchor="middle">kho graph bên dưới · cổng 7687</text>
+        <text class="t-tiny" x="754" y="220" text-anchor="middle">server tự nói chuyện với nó</text>
+
+        <line class="ln-g" x1="754" y1="140" x2="754" y2="158" marker-end="url(#d8g)"/>
+
+        <line class="ln" x1="300" y1="108" x2="610" y2="92" marker-end="url(#d8a)"/>
+        <text class="t-tiny" x="455" y="88" text-anchor="middle">5 · project restore</text>
+        <line class="ln" x1="300" y1="140" x2="610" y2="112" marker-end="url(#d8a)"/>
+        <text class="t-tiny" x="455" y="122" text-anchor="middle">6 · schema commit</text>
+        <line class="ln-a" x1="300" y1="176" x2="610" y2="196" marker-end="url(#d8o)"/>
+        <text class="t-tiny" x="455" y="176" text-anchor="middle">7 · kg_writer ghi subgraph</text>
+
+        <text class="t-tiny" x="24" y="292">HAI LƯỢT CHẠY RIÊNG · HAI CHAIN · HAI KHOÁ CONFIG · CHUNG MỘT SERVER ĐÍCH</text>
+
+        <rect class="bx-a" x="40" y="306" width="250" height="54" rx="3"/>
+        <text class="t-lbl" x="165" y="326" text-anchor="middle">lượt 1 · unstructured</text>
+        <text class="t-tiny" x="165" y="344" text-anchor="middle">kag_builder_pipeline · văn bản .md</text>
+        <line class="ln-a" x1="292" y1="333" x2="386" y2="333" marker-end="url(#d8a)"/>
+
+        <rect class="bx-g" x="390" y="306" width="250" height="54" rx="3"/>
+        <text class="t-lbl" x="515" y="326" text-anchor="middle">lượt 2 · structured</text>
+        <text class="t-tiny" x="515" y="344" text-anchor="middle">spo_runner · quan hệ từ metadata</text>
+        <line class="ln-g" x1="642" y1="333" x2="700" y2="333" marker-end="url(#d8g)"/>
+
+        <text class="t-tiny" x="706" y="330">cùng ghi vào</text>
+        <text class="t-tiny" x="706" y="344">server ở trên</text>
+      </svg>
+      <figcaption><strong>Bật gì trước, chạy gì sau.</strong> Đọc từ trái sang phải theo đúng số thứ tự: cài Docker rồi bật cụm, đăng ký project, đẩy schema lên, và chỉ khi đó mới chạy indexer. Ba mũi tên trên là ba việc một chiều từ máy bạn lên server. Hai hộp dưới là hai lượt chạy độc lập, mỗi lượt một chain và một khoá config riêng, chỉ chung đích là server OpenSPG. Người mới hay bỏ qua bước 6 rồi tự hỏi vì sao extractor gãy ngay lúc khởi động.</figcaption>
+      </figure>
+    </div>
+  </details>
 </section>
 
 <!-- ============ 05 ============ -->

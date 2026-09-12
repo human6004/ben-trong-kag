@@ -22,7 +22,7 @@ Câu hỏi ví dụ mà RAG thường trả sai, lấy đúng dữ liệu trong 
 
 Trong dữ liệu, `SPO.csv` có dòng `Panic_disorder,has_symptom,Anxiety_and_nervousness`, còn thuốc điều trị lại nằm trong đoạn mô tả bệnh ở `Disease.csv`. Không đoạn văn nào chứa cả triệu chứng lẫn tên thuốc. RAG lấy top-k theo vector sẽ ra toàn đoạn nói về "lo âu", không bao giờ chạm tới tên thuốc.
 
-**Vấn đề của GraphRAG.** GraphRAG có đồ thị, nhưng đồ thị được trích tự do bằng OpenIE (Open Information Extraction — trích tam bộ không ràng buộc kiểu). Cùng một loại thuốc xuất hiện dưới ba tên khác nhau thành ba node. Giống như ba người cùng ghi sổ mà không thống nhất cách viết tên.
+**Vấn đề của GraphRAG.** GraphRAG có đồ thị, nhưng đồ thị được trích tự do bằng OpenIE (Open Information Extraction — trích triple (bộ ba) không ràng buộc kiểu). Cùng một loại thuốc xuất hiện dưới ba tên khác nhau thành ba node. Giống như ba người cùng ghi sổ mà không thống nhất cách viết tên.
 
 **KAG sửa bằng 3 ý chính.**
 
@@ -168,7 +168,7 @@ cd solver && python evaForMedicine.py && cd ..
 ### Chi phí và phụ thuộc cần biết trước
 
 - **Docker bắt buộc.** Phải chạy OpenSPG engine trước, tải compose file từ repo `OpenSPG/openspg`, không có trong repo KAG.
-- **Số lần gọi LLM khi build**: `schema_free_extractor` gọi **3 lần cho mỗi chunk** (NER, chuẩn hóa, trích tam bộ). 10.000 chunk là 30.000 lần gọi. Dữ liệu đã có cấu trúc thì đi đường `spg_mapping` / `spo_mapping`, **không tốn lần gọi nào**.
+- **Số lần gọi LLM khi build**: `schema_free_extractor` gọi **3 lần cho mỗi chunk** (NER, chuẩn hóa, trích triple (bộ ba)). 10.000 chunk là 30.000 lần gọi. Dữ liệu đã có cấu trúc thì đi đường `spg_mapping` / `spo_mapping`, **không tốn lần gọi nào**.
 - **Số lần gọi LLM khi hỏi**: khoảng 4 đến 10 cho mỗi câu, gồm planner, rewrite, tóm tắt trong executor, deduce, generator, finish_judger. Con số chính xác tùy pipeline, **chưa xác minh** bằng đo thực tế.
 - **Thời gian build**: repo có checkpoint theo hash nội dung ở `kag/builder/runner.py`, chạy lại không tốn lại tiền cho phần đã xong. Thời gian tuyệt đối **chưa xác minh**, phụ thuộc độ trễ LLM và `num_chains` trong config.
 - README gốc quảng cáo chế độ "Lightweight Build" giảm 89% chi phí token. Đây là con số duy nhất trong README gốc, không kèm điều kiện đo.

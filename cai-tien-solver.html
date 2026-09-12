@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="So sánh luồng KAG Solver gốc với luồng cải tiến: trạng thái bằng chứng có cấu trúc, bộ đánh giá dựa trên bằng chứng và bốn trạng thái quyết định.">
+<title>Cải tiến vòng lặp solver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/layout.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/diagram.css">
+</head>
+<body>
+<button class="theme-btn" id="themeBtn" type="button">Sáng / Tối</button>
+
+<div class="shell">
+
+<nav class="rail">
+  <div class="rail-mark">Cải tiến vòng lặp solver<span>Trạng thái bằng chứng có cấu trúc</span></div>
+  <ul class="toc" id="toc">
+    <li><a href="#s1"><em>01</em><span>Vấn đề của vòng lặp gốc</span></a></li>
+    <li><a href="#s2"><em>02</em><span>Luồng gốc</span></a></li>
+    <li><a href="#s3"><em>03</em><span>Luồng cải tiến</span></a></li>
+    <li><a href="#s4"><em>04</em><span>Hai thay đổi cốt lõi</span></a></li>
+    <li><a href="#s5"><em>05</em><span>Chạy thử một ca luật</span></a></li>
+    <li><a href="#s6"><em>06</em><span>Đối chiếu và giới hạn</span></a></li>
+    <li><a href="index.html"><em>&larr;</em><span>KAG hoạt động thế nào</span></a></li>
+  </ul>
+  <div class="rail-foot">
+    thiết kế đề xuất · chưa có trong repo<br>
+    6 mục · 5 sơ đồ<br>
+    đối chiếu: OpenSPG/KAG 0.8.0
+  </div>
+</nav>
+
+<main>
+
+<header class="hero">
+  <p class="eyebrow">Đề xuất nghiên cứu · vòng lặp solver KAG</p>
+  <h1>Cải tiến vòng lặp solver</h1>
+  <p class="lede">Trang này đặt hai luồng cạnh nhau. <strong>Luồng gốc chấm kết quả bằng một bộ chấm đúng sai, nên khi chưa xong nó chỉ biết là chưa xong chứ không biết còn thiếu cái gì.</strong> Luồng cải tiến thay bộ chấm đó bằng một trạng thái bằng chứng có cấu trúc và một bộ đánh giá rẽ theo bốn trạng thái, để mỗi vòng lặp sau có lý do cụ thể mà chạy.</p>
+</header>
+
+<div class="wrap">
+
+<!-- ============ 01 ============ -->
+<section id="s1">
+  <div class="sec-head"><span class="sec-num">01</span><h2>Vấn đề của vòng lặp gốc</h2></div>
+  <p class="sec-sub">Mục này chỉ có chữ, vì vấn đề không nằm ở hình dạng luồng mà nằm ở chỗ luồng được cấp thông tin gì để quyết định.</p>
+
+  <p class="col">Bản gốc chấm kết quả bằng một bộ chấm đúng sai. Sau khi chạy xong một vòng, bộ chấm đó trả về đúng hoặc sai, và câu trả lời từng bước bị soi thêm một lần nữa: nếu trong đó có chữ <span class="mono">unknown</span> thì coi như chưa xong. <strong>Đó là toàn bộ lượng thông tin mà vòng lặp gốc có trong tay.</strong> Nó biết chưa trả lời được, nhưng không biết còn thiếu cái gì, thiếu ở đâu, hay thiếu vì lý do gì. Không có danh sách nào liệt kê phần còn trống, nên vòng sau buộc phải đoán: nó nhận lại câu hỏi gốc cùng một bộ nhớ chỉ lưu lịch sử rồi tự nghĩ ra hướng đi mới. Đoán đúng thì tốt, đoán lại vào chỗ vừa truy xuất xong thì vòng đó tiêu tốn thêm một lượt gọi mô hình mà không mang về thêm bằng chứng nào.</p>
+
+  <p class="col">Bộ nhớ của bản gốc cũng chỉ lưu lịch sử, không phân loại, gồm đúng ba loại mục: <strong>các truy vấn con</strong> đã phát ra, <strong>kết quả truy xuất</strong> lấy về từ kho, và <strong>câu trả lời từng bước</strong>. Ba loại mục đó nằm cạnh nhau, không mục nào nói mục nào đã trả lời được câu hỏi hay chưa, không mục nào nói một khẳng định dựa trên đoạn văn bản nào. Vì bộ nhớ chỉ lưu lịch sử nên không phân biệt được đã có bằng chứng với chưa có bằng chứng, bộ chấm đúng sai cũng không có gì để chấm ngoài câu chữ cuối cùng. Hai hạn chế đó nhân với nhau: bộ chấm thiếu thông tin, và bộ nhớ không cung cấp thông tin.</p>
+
+  <div class="callout">
+    <span class="k">Câu hỏi dùng xuyên suốt trang</span>
+    <p style="font-size:18px;font-family:var(--serif);margin:0">“Doanh nghiệp nước ngoài cung cấp dịch vụ mạng xã hội tại Việt Nam có phải lưu trữ dữ liệu người dùng trong nước hay không?”</p>
+  </div>
+
+  <p class="col">Câu hỏi này được chọn vì nó là một ca luật thật và có đúng hình dạng làm khó vòng lặp gốc. Trả lời được nó cần ghép hai tầng văn bản: luật khung nói ai thuộc diện phải lưu trữ dữ liệu, còn nghị định hướng dẫn nói nghĩa vụ đó phát sinh khi nào và cần điều kiện gì kích hoạt. Một vòng chạy chỉ chạm tới tầng thứ nhất vẫn sinh ra một câu trả lời đọc lên rất trôi chảy, nhưng thiếu hẳn phần điều kiện. Bộ chấm đúng sai của bản gốc không phân biệt được câu trả lời đó với một câu trả lời đã đủ. Phần ví dụ luật đầy đủ nằm ở mục 05.</p>
+</section>
+
+<!-- ============ 02 ============ -->
+<section id="s2">
+  <div class="sec-head"><span class="sec-num">02</span><h2>Luồng gốc</h2></div>
+  <p class="sec-sub">Một vòng chạy của bản gốc, vẽ từ lúc câu hỏi vào tới lúc ra câu trả lời cuối, kể cả đường quay lui khi bộ chấm kết quả nói chưa xong.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 660" role="img" aria-label="Luồng gốc của KAG Solver. Câu hỏi gốc và câu hỏi đang xử lý vào bộ lập kế hoạch, sinh danh sách logical form gồm truy vấn con kèm toán tử, chuyển cho bộ thực thi. Bộ thực thi có năm toán tử Retrieval, Deduce, Math, Sort, Output và đi truy xuất trên đồ thị. Tới nút quyết định đủ hay chưa: nếu chưa đủ thì đi tiếp xuống truy xuất kết hợp đồ thị cộng văn bản, nếu đủ thì sang thẳng phần sinh câu trả lời. Kết quả trung gian gồm phần truy xuất và câu trả lời từng bước được ghi vào bộ nhớ toàn cục rồi tới bộ chấm kết quả đã giải xong chưa. Nhánh xong đi tới bộ sinh câu trả lời rồi ra câu trả lời cuối. Nhánh chưa xong đi tới bước sinh truy vấn bổ sung, sinh ra truy vấn mới và quay lại bộ lập kế hoạch.">
+    <defs>
+      <marker id="m1n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+      <marker id="m1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m1g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <rect class="bx-g" x="24" y="24" width="200" height="52" rx="2"/>
+    <text class="t-lbl" x="38" y="46">Câu hỏi gốc</text>
+    <text class="t-tiny" x="38" y="64">người dùng đặt vào</text>
+    <rect class="bx" x="248" y="24" width="200" height="52" rx="2"/>
+    <text class="t-lbl" x="262" y="46">Câu hỏi đang xử lý</text>
+    <text class="t-tiny" x="262" y="64">vòng đầu là câu hỏi gốc</text>
+    <path class="ln" d="M 224 50 L 244 50" marker-end="url(#m1n)"/>
+    <path class="ln" d="M 448 50 L 470 50" marker-end="url(#m1n)"/>
+
+    <rect class="bx-a" x="474" y="24" width="240" height="52" rx="2"/>
+    <text class="t-lbl" x="488" y="46">Bộ lập kế hoạch</text>
+    <text class="t-tiny" x="488" y="64">phân rã câu hỏi thành các bước</text>
+
+    <rect class="bx-o" x="474" y="98" width="240" height="72" rx="2"/>
+    <text class="t-lbl" x="488" y="120">Danh sách logical form</text>
+    <text class="t-tiny" x="488" y="138">truy vấn con kèm toán tử</text>
+    <text class="t-tiny" x="488" y="156">mỗi mục một việc phải chạy</text>
+    <path class="ln-a" d="M 594 76 L 594 94" marker-end="url(#m1a)"/>
+    <text class="t-tiny" x="606" y="90">phân rã</text>
+
+    <rect class="bx-a" x="474" y="192" width="240" height="52" rx="2"/>
+    <text class="t-lbl" x="488" y="214">Bộ thực thi</text>
+    <text class="t-tiny" x="488" y="232">chạy từng mục trong danh sách</text>
+    <path class="ln-a" d="M 594 170 L 594 188" marker-end="url(#m1a)"/>
+
+    <rect class="panel" x="24" y="184" width="420" height="152" rx="3"/>
+    <text class="t-tiny" x="38" y="206">NĂM TOÁN TỬ · bộ thực thi chọn theo từng mục</text>
+    <rect class="bx" x="40" y="216" width="182" height="38" rx="2"/><text class="t-lbl" x="54" y="240">Retrieval</text>
+    <rect class="bx" x="244" y="216" width="182" height="38" rx="2"/><text class="t-lbl" x="258" y="240">Deduce</text>
+    <rect class="bx" x="40" y="264" width="182" height="38" rx="2"/><text class="t-lbl" x="54" y="288">Math</text>
+    <rect class="bx" x="244" y="264" width="182" height="38" rx="2"/><text class="t-lbl" x="258" y="288">Sort</text>
+    <rect class="bx" x="40" y="312" width="182" height="38" rx="2"/><text class="t-lbl" x="54" y="336">Output</text>
+    <path class="ln" d="M 470 222 L 448 222" marker-end="url(#m1n)"/>
+
+    <rect class="bx" x="40" y="396" width="250" height="58" rx="2"/>
+    <text class="t-lbl" x="54" y="420">Truy xuất trên đồ thị</text>
+    <text class="t-tiny" x="54" y="440">đi theo cạnh trong kho</text>
+    <path class="ln-dash" d="M 165 350 L 165 392" marker-end="url(#m1g)"/>
+
+    <rect class="bx-o" x="330" y="396" width="200" height="58" rx="2"/>
+    <text class="t-lbl" x="344" y="418">Đủ hay chưa</text>
+    <text class="t-tiny" x="344" y="436">nút quyết định</text>
+    <path class="ln" d="M 292 425 L 326 425" marker-end="url(#m1n)"/>
+    <text class="t-tiny" x="200" y="390">đã có kết quả truy xuất</text>
+
+    <rect class="bx" x="330" y="486" width="200" height="58" rx="2"/>
+    <text class="t-lbl" x="344" y="508">Truy xuất kết hợp</text>
+    <text class="t-tiny" x="344" y="526">đồ thị cộng văn bản</text>
+    <path class="ln" d="M 430 454 L 430 482" marker-end="url(#m1n)"/>
+    <text class="t-tiny" x="442" y="472">chưa đủ</text>
+
+    <rect class="bx-a" x="560" y="486" width="196" height="58" rx="2"/>
+    <text class="t-lbl" x="574" y="508">Kết quả trung gian</text>
+    <text class="t-tiny" x="574" y="524">phần truy xuất</text>
+    <text class="t-tiny" x="574" y="538">câu trả lời từng bước</text>
+    <path class="ln-a" d="M 530 515 L 556 515" marker-end="url(#m1a)"/>
+
+    <rect class="bx-g" x="780" y="486" width="156" height="58" rx="2"/>
+    <text class="t-lbl" x="794" y="508">Bộ nhớ toàn cục</text>
+    <text class="t-tiny" x="794" y="524">chỉ lưu lịch sử</text>
+    <text class="t-tiny" x="794" y="538">không phân loại</text>
+    <path class="ln-g" d="M 756 515 L 776 515" marker-end="url(#m1g)"/>
+
+    <rect class="bx-o" x="780" y="342" width="156" height="70" rx="2"/>
+    <text class="t-lbl" x="794" y="366">Bộ chấm kết quả</text>
+    <text class="t-tiny" x="794" y="386">chỉ nói xong</text>
+    <text class="t-tiny" x="794" y="402">hay chưa</text>
+    <path class="ln" d="M 858 482 L 858 416" marker-end="url(#m1n)"/>
+    <path class="ln-a" d="M 896 412 L 896 452 L 766 452 L 766 584 L 448 584" marker-end="url(#m1a)"/>
+
+    <rect class="bx-a" x="560" y="342" width="196" height="58" rx="2"/>
+    <text class="t-lbl" x="574" y="364">Bộ sinh câu trả lời</text>
+    <text class="t-tiny" x="574" y="382">tổng hợp từ bằng chứng</text>
+    <path class="ln-a" d="M 776 366 L 760 366" marker-end="url(#m1a)"/>
+    <text class="t-tiny" x="706" y="336">xong</text>
+
+    <rect class="bx-g" x="780" y="24" width="156" height="58" rx="2"/>
+    <text class="t-lbl" x="794" y="46">Câu trả lời cuối</text>
+    <text class="t-tiny" x="794" y="64">có kèm trích dẫn</text>
+    <path class="ln-g" d="M 658 338 L 658 302 L 768 302 L 768 53 L 776 53" marker-end="url(#m1g)"/>
+
+    <rect class="bx-a" x="24" y="560" width="420" height="48" rx="2"/>
+    <text class="t-lbl" x="38" y="582">Sinh truy vấn bổ sung</text>
+    <text class="t-tiny" x="38" y="600">sinh truy vấn mới từ lịch sử</text>
+    <text class="t-tiny" x="470" y="574">chưa xong · không biết còn thiếu gì</text>
+
+    <path class="ln-a" d="M 24 576 L 8 576 L 8 50 L 22 50" marker-end="url(#m1a)"/>
+    <text class="t-tiny" x="12" y="640">truy vấn mới quay lại bộ lập kế hoạch</text>
+  </svg>
+  </div>
+  <figcaption><strong>Một vòng, một bộ chấm, hai lối ra.</strong> Hình này cho thấy chỗ nghẽn nằm ở bộ chấm kết quả: nó chỉ có hai lối ra là xong và chưa xong, nên đường quay lui duy nhất phải đi qua bước sinh truy vấn bổ sung rồi làm lại từ bộ lập kế hoạch. Bộ nhớ toàn cục nằm bên cạnh đường đi chứ không nằm trong quyết định: nó nhận kết quả trung gian và cung cấp lịch sử cho bước sinh truy vấn bổ sung, nhưng không có mục nào nói phần nào của câu hỏi đã được trả lời. Đường đi vì thế trông giống một vòng học, mà thật ra là một vòng đoán.</figcaption>
+  </figure>
+  <p class="note">Đối chiếu sang code thật: bộ lập kế hoạch và bộ thực thi có thật trong pipeline hiện tại. Bộ nhớ toàn cục và bước phản tỉnh thì repo có sẵn giao diện trừu tượng, nhưng không có lớp cài đặt nào và không pipeline nào đang gọi tới, nên coi như chưa dùng được. Khối toán tử vẽ năm ô theo bài báo gốc; repo hiện chỉ có bốn, phần sắp xếp gộp vào Math.</p>
+</section>
+
+<!-- ============ 03 ============ -->
+<section id="s3">
+  <div class="sec-head"><span class="sec-num">03</span><h2>Luồng cải tiến</h2></div>
+  <p class="sec-sub">Nửa đầu giữ nguyên. Chỗ đổi duy nhất nằm sau khi bằng chứng đã về tay, và nó đổi đúng một thứ: thay vì hỏi đúng sai, luồng hỏi còn thiếu cái gì.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 1000 682" role="img" aria-label="Luồng cải tiến. Câu hỏi gốc sang câu hỏi đang xử lý rồi vào bộ lập kế hoạch, sinh danh sách logical form, chuyển cho bộ thực thi. Bộ thực thi chọn một trong năm toán tử Retrieval, Deduce, Math, Sort, Output. Nhánh truy xuất chạy cột trái: truy xuất trên đồ thị, rồi truy xuất kết hợp đồ thị cộng văn bản, ra bằng chứng thu được. Bằng chứng đi vào trạng thái bằng chứng có cấu trúc, rồi sang bộ đánh giá dựa trên bằng chứng. Đủ thì sang bộ sinh câu trả lời rồi lên câu trả lời cuối kèm trích dẫn. Mâu thuẫn thì lên đối chiếu chọn theo hiệu lực văn bản, rồi quay thẳng về bộ thực thi. Thiếu thì xuống lập lại kế hoạch theo fact thiếu, rồi vòng về bộ lập kế hoạch theo làn trái. Chưa có cơ sở thì sang khối truy xuất thêm bằng chứng hỗ trợ, rồi quay thẳng về bộ thực thi.">
+    <defs>
+      <marker id="m2n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+      <marker id="m2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <!-- vòng về bộ lập kế hoạch: vẽ trước, đi làn riêng ở lề trái -->
+    <path class="ln-dash" d="M 670 668 L 18 668 L 18 14 L 554 14 L 554 22" marker-end="url(#m2g)"/>
+    <text class="t-tiny" x="32" y="660">kế hoạch mới quay lại bộ lập kế hoạch</text>
+
+    <!-- hàng trên: câu hỏi → câu hỏi đang xử lý → bộ lập kế hoạch -->
+    <rect class="bx-g" x="32" y="24" width="176" height="50" rx="2"/>
+    <text class="t-lbl" x="46" y="46">Câu hỏi gốc</text>
+    <text class="t-tiny" x="46" y="64">người dùng đặt vào</text>
+
+    <path class="ln" d="M 208 49 L 222 49" marker-end="url(#m2n)"/>
+
+    <rect class="bx" x="226" y="24" width="198" height="50" rx="2"/>
+    <text class="t-lbl" x="240" y="46">Câu hỏi đang xử lý</text>
+    <text class="t-tiny" x="240" y="64">vòng đầu là câu hỏi gốc</text>
+
+    <path class="ln" d="M 424 49 L 438 49" marker-end="url(#m2n)"/>
+
+    <rect class="bx-a" x="442" y="24" width="240" height="50" rx="2"/>
+    <text class="t-lbl" x="456" y="46">Bộ lập kế hoạch</text>
+    <text class="t-tiny" x="456" y="64">phân rã câu hỏi thành các bước</text>
+
+    <path class="ln-a" d="M 554 74 L 554 92" marker-end="url(#m2a)"/>
+
+    <rect class="bx-o" x="442" y="96" width="240" height="66" rx="2"/>
+    <text class="t-lbl" x="456" y="118">Danh sách logical form</text>
+    <text class="t-tiny" x="456" y="136">truy vấn con kèm toán tử</text>
+    <text class="t-tiny" x="456" y="152">mỗi mục một việc phải chạy</text>
+
+    <path class="ln-a" d="M 554 162 L 554 178" marker-end="url(#m2a)"/>
+
+    <rect class="bx-a" x="442" y="182" width="240" height="50" rx="2"/>
+    <text class="t-lbl" x="456" y="204">Bộ thực thi</text>
+    <text class="t-tiny" x="456" y="222">chạy từng mục trong danh sách</text>
+
+    <path class="ln" d="M 442 207 L 428 207" marker-end="url(#m2n)"/>
+
+    <rect class="panel" x="32" y="170" width="388" height="152" rx="3"/>
+    <text class="t-tiny" x="46" y="190">NĂM TOÁN TỬ · bộ thực thi chọn theo từng mục</text>
+    <rect class="bx" x="46" y="204" width="172" height="32" rx="2"/><text class="t-lbl" x="60" y="225">Retrieval</text>
+    <rect class="bx" x="232" y="204" width="172" height="32" rx="2"/><text class="t-lbl" x="246" y="225">Deduce</text>
+    <rect class="bx" x="46" y="244" width="172" height="32" rx="2"/><text class="t-lbl" x="60" y="265">Math</text>
+    <rect class="bx" x="232" y="244" width="172" height="32" rx="2"/><text class="t-lbl" x="246" y="265">Sort</text>
+    <rect class="bx" x="46" y="284" width="172" height="32" rx="2"/><text class="t-lbl" x="60" y="305">Output</text>
+
+    <rect class="bx-o" x="442" y="278" width="240" height="50" rx="2"/>
+    <text class="t-lbl" x="456" y="300">Đối chiếu</text>
+    <text class="t-tiny" x="456" y="318">chọn theo hiệu lực văn bản</text>
+
+    <path class="ln-g" d="M 640 278 L 640 236" marker-end="url(#m2g)"/>
+    <text class="t-tiny" x="652" y="260">quay thẳng về bộ thực thi</text>
+
+    <path class="ln-dash" d="M 132 322 L 132 462" marker-end="url(#m2g)"/>
+
+    <rect class="bx" x="32" y="466" width="268" height="52" rx="2"/>
+    <text class="t-lbl" x="46" y="488">Truy xuất trên đồ thị</text>
+    <text class="t-tiny" x="46" y="506">đi theo cạnh trong kho</text>
+
+    <path class="ln-dash" d="M 166 518 L 166 536" marker-end="url(#m2g)"/>
+    <text class="t-tiny" x="178" y="532">cần thêm văn bản</text>
+
+    <rect class="bx" x="32" y="540" width="268" height="52" rx="2"/>
+    <text class="t-lbl" x="46" y="562">Truy xuất kết hợp</text>
+    <text class="t-tiny" x="46" y="580">đồ thị cộng văn bản</text>
+
+    <path class="ln-g" d="M 300 566 L 548 566 L 548 372 L 558 372" marker-end="url(#m2g)"/>
+
+    <rect class="bx-g" x="562" y="346" width="220" height="52" rx="2"/>
+    <text class="t-lbl" x="576" y="368">Bằng chứng thu được</text>
+    <text class="t-tiny" x="576" y="386">đoạn văn bản luật</text>
+
+    <path class="ln-a" d="M 672 398 L 672 414" marker-end="url(#m2a)"/>
+
+    <rect class="bx-a" x="562" y="418" width="220" height="70" rx="2"/>
+    <text class="t-lbl" x="576" y="440">Trạng thái bằng chứng</text>
+    <text class="t-tiny" x="576" y="458">có cấu trúc</text>
+    <text class="t-tiny" x="576" y="476">bằng chứng · fact · kết quả</text>
+
+    <path class="ln-a" d="M 672 488 L 672 504" marker-end="url(#m2a)"/>
+
+    <rect class="bx-a" x="562" y="508" width="220" height="86" rx="2"/>
+    <text class="t-lbl" x="576" y="530">Bộ đánh giá</text>
+    <text class="t-tiny" x="576" y="548">dựa trên bằng chứng</text>
+    <text class="t-tiny" x="576" y="566">bốn trạng thái quyết định</text>
+    <text class="t-tiny" x="576" y="582">đọc thẳng từ trạng thái</text>
+
+    <path class="ln-a" d="M 562 551 L 430 551 L 430 303 L 440 303" marker-end="url(#m2a)"/>
+    <text class="t-tiny" x="436" y="544">mâu thuẫn</text>
+
+    <path class="ln-g" d="M 782 551 L 802 551" marker-end="url(#m2g)"/>
+    <text class="t-tiny" x="786" y="543">đủ</text>
+
+    <rect class="bx-g" x="806" y="418" width="170" height="70" rx="2"/>
+    <text class="t-lbl" x="820" y="440">Câu trả lời cuối</text>
+    <text class="t-tiny" x="820" y="466">kèm trích dẫn</text>
+
+    <path class="ln-g" d="M 891 520 L 891 492" marker-end="url(#m2g)"/>
+
+    <rect class="bx-g" x="806" y="524" width="170" height="58" rx="2"/>
+    <text class="t-lbl" x="820" y="546">Bộ sinh</text>
+    <text class="t-lbl" x="820" y="564">câu trả lời</text>
+
+    <path class="ln-a" d="M 672 594 L 672 612" marker-end="url(#m2a)"/>
+    <text class="t-tiny" x="684" y="610">thiếu</text>
+
+    <rect class="bx-o" x="562" y="616" width="220" height="50" rx="2"/>
+    <text class="t-lbl" x="576" y="638">Lập lại kế hoạch</text>
+    <text class="t-tiny" x="576" y="656">định hướng theo fact thiếu</text>
+
+    <path class="ln-a" d="M 760 594 L 760 600 L 794 600 L 794 640 L 802 640" marker-end="url(#m2a)"/>
+    <text class="t-tiny" x="806" y="602">chưa có cơ sở</text>
+
+    <rect class="bx-o" x="806" y="610" width="170" height="58" rx="2"/>
+    <text class="t-lbl" x="820" y="632">Truy xuất thêm</text>
+    <text class="t-tiny" x="820" y="652">bằng chứng hỗ trợ</text>
+
+    <path class="ln-g" d="M 976 639 L 992 639 L 992 207 L 688 207" marker-end="url(#m2g)"/>
+    <text class="t-tiny" x="700" y="200">bổ sung bằng chứng rồi chạy lại</text>
+  </svg>
+  </div>
+  <figcaption><strong>Bốn trạng thái, bốn lối ra.</strong> Hình này giữ nguyên nửa trên của luồng gốc, rồi chỉ thay khúc sau khi bằng chứng đã về. Bộ đánh giá đọc trạng thái có cấu trúc rồi rẽ bốn hướng khác nhau: đủ thì sang bộ sinh câu trả lời; thiếu thì xuống lập lại kế hoạch và vòng về bộ lập kế hoạch theo làn trái, mang theo danh sách fact còn trống; mâu thuẫn thì kế hoạch không sai, chỉ có hai nguồn nói ngược nhau, nên đường quay lui đi lên đối chiếu rồi vào thẳng bộ thực thi; chưa có cơ sở thì kế hoạch cũng không sai, chỉ thiếu phần chống lưng cho một khẳng định đã có, nên nó đi truy xuất thêm bằng chứng hỗ trợ rồi cũng vào thẳng bộ thực thi. Hai lối sau không đụng tới kế hoạch, vì vứt cả kế hoạch đi trong hai ca đó là phí một lượt gọi mô hình.</figcaption>
+  </figure>
+  <p class="note">Đối chiếu sang code thật: đây là thiết kế đề xuất, chưa có trong repo. Khối toán tử vẫn giữ năm ô như hình mục 02 để hai hình đặt cạnh nhau so được; repo thật có bốn.</p>
+</section>
+
+<!-- ============ 04 ============ -->
+<section id="s4">
+  <div class="sec-head"><span class="sec-num">04</span><h2>Hai thay đổi cốt lõi</h2></div>
+  <p class="sec-sub">Thay đổi thứ nhất là một cấu trúc dữ liệu thay cho bộ nhớ chỉ lưu lịch sử. Thay đổi thứ hai là một bộ rẽ bốn nhánh thay cho bộ chấm đúng sai. Hai hình dưới tách riêng từng cái.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 540" role="img" aria-label="Bốn nhóm trường của Trạng thái bằng chứng có cấu trúc. Nhóm định danh gồm câu hỏi gốc, câu hỏi đang xử lý, số vòng đã chạy. Nhóm bằng chứng gồm bằng chứng đã truy xuất và nguồn gốc bằng chứng là văn bản, điều, khoản, node, quan hệ, chunk. Nhóm sổ theo dõi fact gồm fact đã có bằng chứng, fact còn thiếu, fact mâu thuẫn, kết luận chưa có cơ sở. Nhóm kết quả gồm các câu trả lời từng bước. Bên cạnh là khối nhỏ ghi bộ nhớ gốc chỉ lưu lịch sử truy vấn con, kết quả truy xuất và câu trả lời từng bước. Phần tăng thêm so với bộ nhớ gốc gồm trường nguồn gốc bằng chứng và cả bốn trường của nhóm sổ theo dõi fact.">
+
+    <rect class="panel" x="24" y="40" width="432" height="196" rx="3"/>
+    <text class="t-head" x="40" y="30">Nhóm định danh · ca đang chạy là ca nào</text>
+    <text class="t-tiny" x="40" y="64">TRƯỜNG</text>
+    <rect class="bx" x="40" y="74" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="98">Câu hỏi gốc</text>
+    <rect class="bx" x="40" y="122" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="146">Câu hỏi đang xử lý</text>
+    <rect class="bx" x="40" y="170" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="194">Số vòng đã chạy</text>
+
+    <rect class="panel" x="484" y="40" width="432" height="196" rx="3"/>
+    <text class="t-head" x="500" y="30">Nhóm bằng chứng · cái gì đang làm căn cứ</text>
+    <text class="t-tiny" x="500" y="64">TRƯỜNG</text>
+    <rect class="bx" x="500" y="74" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="514" y="98">Bằng chứng đã truy xuất</text>
+    <rect class="bx-a" x="500" y="122" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="514" y="146">Nguồn gốc bằng chứng</text>
+    <text class="t-tiny" x="514" y="180">VĂN BẢN · ĐIỀU · KHOẢN · NODE · QUAN HỆ · CHUNK</text>
+
+    <rect class="panel" x="24" y="272" width="432" height="244" rx="3"/>
+    <text class="t-head" x="40" y="262">Nhóm sổ theo dõi fact · còn thiếu cái gì</text>
+    <text class="t-tiny" x="40" y="296">TRƯỜNG</text>
+    <rect class="bx-g" x="40" y="306" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="330">Fact đã có bằng chứng</text>
+    <rect class="bx-o" x="40" y="354" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="378">Fact còn thiếu</text>
+    <rect class="bx-o" x="40" y="402" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="426">Fact mâu thuẫn</text>
+    <rect class="bx-o" x="40" y="450" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="54" y="474">Kết luận chưa có cơ sở</text>
+
+    <rect class="panel" x="484" y="272" width="432" height="142" rx="3"/>
+    <text class="t-head" x="500" y="262">Nhóm kết quả · đã nói ra được gì</text>
+    <text class="t-tiny" x="500" y="296">TRƯỜNG</text>
+    <rect class="bx" x="500" y="306" width="400" height="38" rx="2"/>
+    <text class="t-lbl" x="514" y="330">Các câu trả lời từng bước</text>
+    <text class="t-tiny" x="514" y="368">Giữ riêng khỏi nhóm bằng chứng, vì một câu trả lời</text>
+    <text class="t-tiny" x="514" y="386">từng bước có thể đúng chữ mà vẫn thiếu bằng chứng.</text>
+
+    <rect class="bx" x="484" y="438" width="432" height="78" rx="2"/>
+    <text class="t-tiny" x="500" y="458">BỘ NHỚ GỐC · đúng ba loại mục,</text>
+    <text class="t-tiny" x="500" y="474">không loại nào nói còn thiếu gì</text>
+    <text class="t-tiny" x="500" y="494">lịch sử truy vấn con · kết quả truy xuất ·</text>
+    <text class="t-tiny" x="500" y="510">câu trả lời từng bước</text>
+    <text class="t-tiny" x="24" y="532">Ô CÓ MÀU · phần tăng thêm so với bộ nhớ gốc · Ô XÁM · thứ bộ nhớ gốc đã có sẵn</text>
+  </svg>
+  </div>
+  <figcaption><strong>Cùng một chỗ nhớ, nhưng đổi từ lịch sử sang trạng thái.</strong> Hình này cho thấy chênh lệch không nằm ở số trường mà nằm ở loại câu hỏi mà cấu trúc trả lời được. Bộ nhớ gốc trả lời được câu &ldquo;đã chạy những gì&rdquo;. Trạng thái bằng chứng trả lời thêm ba câu nữa: cái gì đang làm căn cứ cho từng khẳng định, còn thiếu khẳng định nào, và khẳng định nào đang vượt quá bằng chứng. Ba câu đó chính là thứ mà vòng lặp sau cần để không phải đoán.</figcaption>
+  </figure>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 600" role="img" aria-label="Bộ đánh giá dựa trên bằng chứng với bốn trạng thái, mỗi trạng thái ghi rõ đầu ra và quyết định kế tiếp. Đủ thì quyết định kết thúc và sinh câu trả lời. Thiếu thì đầu ra là danh sách fact còn thiếu và quyết định lập lại kế hoạch có định hướng theo fact thiếu. Mâu thuẫn thì đầu ra là danh sách cặp bằng chứng xung đột và quyết định đối chiếu rồi chọn theo hiệu lực văn bản. Chưa có cơ sở thì đầu ra là danh sách kết luận vượt quá bằng chứng và quyết định đi truy xuất thêm bằng chứng hỗ trợ.">
+    <defs>
+      <marker id="m4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m4g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <rect class="bx-a" x="330" y="24" width="280" height="60" rx="2"/>
+    <text class="t-lbl" x="344" y="48">Bộ đánh giá dựa trên bằng chứng</text>
+    <text class="t-tiny" x="344" y="68">đọc Trạng thái bằng chứng</text>
+
+    <path class="ln-a" d="M 380 84 L 380 132 L 131 132 L 131 148" marker-end="url(#m4a)"/>
+    <path class="ln-a" d="M 450 84 L 450 122 L 357 122 L 357 148" marker-end="url(#m4a)"/>
+    <path class="ln-a" d="M 520 84 L 520 112 L 583 112 L 583 148" marker-end="url(#m4a)"/>
+    <path class="ln-a" d="M 590 84 L 590 102 L 809 102 L 809 148" marker-end="url(#m4a)"/>
+
+    <rect class="bx-g" x="24" y="152" width="214" height="196" rx="2"/>
+    <text class="t-tiny" x="38" y="174">TRẠNG THÁI</text>
+    <text class="t-lbl" x="38" y="198">Đủ</text>
+    <text class="t-tiny" x="38" y="228">ĐẦU RA</text>
+    <text class="t-tiny" x="38" y="248">Mọi fact cần thiết đều đã có</text>
+    <text class="t-tiny" x="38" y="266">bằng chứng, không có cặp nào</text>
+    <text class="t-tiny" x="38" y="284">xung đột, không kết luận nào</text>
+    <text class="t-tiny" x="38" y="302">vượt quá bằng chứng.</text>
+    <text class="t-tiny" x="38" y="330">QUYẾT ĐỊNH</text>
+
+    <rect class="bx-o" x="250" y="152" width="214" height="196" rx="2"/>
+    <text class="t-tiny" x="264" y="174">TRẠNG THÁI</text>
+    <text class="t-lbl" x="264" y="198">Thiếu</text>
+    <text class="t-tiny" x="264" y="228">ĐẦU RA</text>
+    <text class="t-tiny" x="264" y="248">Danh sách fact còn thiếu:</text>
+    <text class="t-tiny" x="264" y="266">khẳng định cần có nhưng</text>
+    <text class="t-tiny" x="264" y="284">chưa đoạn nào nói tới.</text>
+    <text class="t-tiny" x="264" y="330">QUYẾT ĐỊNH</text>
+
+    <rect class="bx-o" x="476" y="152" width="214" height="196" rx="2"/>
+    <text class="t-tiny" x="490" y="174">TRẠNG THÁI</text>
+    <text class="t-lbl" x="490" y="198">Mâu thuẫn</text>
+    <text class="t-tiny" x="490" y="228">ĐẦU RA</text>
+    <text class="t-tiny" x="490" y="248">Danh sách cặp bằng chứng</text>
+    <text class="t-tiny" x="490" y="266">xung đột: hai đoạn nói</text>
+    <text class="t-tiny" x="490" y="284">ngược nhau về cùng một fact.</text>
+    <text class="t-tiny" x="490" y="330">QUYẾT ĐỊNH</text>
+
+    <rect class="bx-o" x="702" y="152" width="214" height="196" rx="2"/>
+    <text class="t-tiny" x="716" y="174">TRẠNG THÁI</text>
+    <text class="t-lbl" x="716" y="198">Chưa có cơ sở</text>
+    <text class="t-tiny" x="716" y="228">ĐẦU RA</text>
+    <text class="t-tiny" x="716" y="248">Danh sách kết luận vượt</text>
+    <text class="t-tiny" x="716" y="266">quá bằng chứng: câu trả lời</text>
+    <text class="t-tiny" x="716" y="284">nói nhiều hơn đoạn văn nói.</text>
+    <text class="t-tiny" x="716" y="330">QUYẾT ĐỊNH</text>
+
+    <rect class="bx-g" x="24" y="374" width="214" height="76" rx="2"/>
+    <text class="t-tiny" x="38" y="396">KẾT THÚC VÀ</text>
+    <text class="t-lbl" x="38" y="418">sinh câu trả lời</text>
+    <text class="t-tiny" x="38" y="438">dừng vòng lặp tại đây</text>
+    <path class="ln-g" d="M 131 348 L 131 370" marker-end="url(#m4g)"/>
+
+    <rect class="bx-o" x="250" y="374" width="214" height="76" rx="2"/>
+    <text class="t-tiny" x="264" y="396">LẬP LẠI KẾ HOẠCH</text>
+    <text class="t-lbl" x="264" y="418">theo fact thiếu</text>
+    <text class="t-tiny" x="264" y="438">quay về bộ lập kế hoạch</text>
+    <path class="ln-a" d="M 357 348 L 357 370" marker-end="url(#m4a)"/>
+
+    <rect class="bx-o" x="476" y="374" width="214" height="76" rx="2"/>
+    <text class="t-tiny" x="490" y="396">ĐỐI CHIẾU</text>
+    <text class="t-lbl" x="490" y="418">chọn theo hiệu lực văn bản</text>
+    <text class="t-tiny" x="490" y="438">bản mới đè bản đã bị sửa đổi</text>
+    <path class="ln-a" d="M 583 348 L 583 370" marker-end="url(#m4a)"/>
+
+    <rect class="bx-o" x="702" y="374" width="214" height="76" rx="2"/>
+    <text class="t-tiny" x="716" y="396">TRUY XUẤT THÊM</text>
+    <text class="t-lbl" x="716" y="418">bằng chứng hỗ trợ</text>
+    <text class="t-tiny" x="716" y="438">quay về bộ thực thi</text>
+    <path class="ln-a" d="M 809 348 L 809 370" marker-end="url(#m4a)"/>
+
+    <rect class="panel" x="24" y="484" width="892" height="92" rx="3"/>
+    <text class="t-tiny" x="40" y="508">SO VỚI BỘ CHẤM GỐC · bộ chấm chỉ trả về đúng hoặc sai, nên ba trạng thái dưới đây bị dồn hết vào nhánh sai</text>
+    <text class="t-tiny" x="40" y="532">Thiếu, mâu thuẫn và chưa có cơ sở đều đổ về cùng một đường quay lui, trong khi ba nguyên nhân này cần ba cách xử lý khác nhau.</text>
+    <text class="t-tiny" x="40" y="556">Tách bốn trạng thái là để mỗi vòng lặp sau có lý do cụ thể mà chạy, và để dừng đúng lúc thay vì dừng vì hết số vòng.</text>
+  </svg>
+  </div>
+  <figcaption><strong>Cùng một nút rẽ, khác số lối ra.</strong> Hình này cho thấy cả bốn trạng thái đều dùng chung một cấu trúc dữ liệu, khác nhau ở chỗ đọc trường nào. Đủ đọc nhóm bằng chứng và thấy kín. Thiếu đọc sổ theo dõi và lấy ra danh sách fact còn trống. Mâu thuẫn đọc sổ theo dõi và lấy ra danh sách cặp xung đột. Chưa có cơ sở cũng đọc sổ theo dõi nhưng lấy ra danh sách kết luận đi xa hơn bằng chứng. Nhờ vậy đầu ra của bộ đánh giá vừa là phán quyết vừa là đầu vào cho vòng sau, và không trạng thái nào cần thêm một lượt gọi mô hình chỉ để hỏi xem nên làm gì tiếp.</figcaption>
+  </figure>
+  <p class="note">Đối chiếu sang code thật: trạng thái hiện tại có thể gắn vào dict mở rộng sẵn có của context, không cần sửa lõi. Bộ chấm kết quả hiện tại chỉ trả về đúng hoặc sai.</p>
+</section>
+
+<!-- ============ 05 ============ -->
+<section id="s5">
+  <div class="sec-head"><span class="sec-num">05</span><h2>Chạy thử một ca luật</h2></div>
+  <p class="sec-sub">Lấy câu hỏi ở mục 01 đem chạy qua luồng cải tiến, xem hai vòng lặp thật sự khác nhau ở đâu.</p>
+
+  <div class="callout">
+    <span class="k">Câu hỏi của ca</span>
+    <p style="font-size:18px;font-family:var(--serif);margin:0">“Doanh nghiệp nước ngoài cung cấp dịch vụ mạng xã hội tại Việt Nam có phải lưu trữ dữ liệu người dùng trong nước hay không?”</p>
+  </div>
+
+  <p class="col"><strong>Phân rã thành ba hướng.</strong> Hướng thứ nhất hỏi đối tượng nào thuộc diện phải lưu trữ dữ liệu tại Việt Nam. Hướng thứ hai hỏi nghĩa vụ phát sinh khi nào và cần điều kiện gì kích hoạt. Hướng thứ ba suy luận xem doanh nghiệp trong câu hỏi có rơi vào diện đó hay không. Ba hướng này không độc lập: hướng thứ ba chỉ chạy được khi hai hướng đầu đã có kết quả, nên nó là bước ghép chứ không phải bước tra cứu.</p>
+
+  <figure class="wide">
+  <div class="figx">
+  <svg class="dg" viewBox="0 0 940 580" role="img" aria-label="Dòng thời gian hai vòng chạy của ca luật. Vòng một tìm được quy định lưu trữ dữ liệu trong Luật An ninh mạng nhưng chưa thấy điều kiện kích hoạt nằm ở nghị định hướng dẫn, nên trạng thái là Thiếu, fact thiếu là trình tự và điều kiện yêu cầu lưu trữ, quyết định lập lại kế hoạch. Vòng hai bổ sung được phần nghị định, trạng thái chuyển thành Đủ và sinh câu trả lời kèm trích dẫn.">
+    <defs>
+      <marker id="m5n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk" points="0,1 10,5 0,9"/></marker>
+      <marker id="m5a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-a" points="0,1 10,5 0,9"/></marker>
+      <marker id="m5g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon class="mk-g" points="0,1 10,5 0,9"/></marker>
+    </defs>
+
+    <path class="ln" d="M 92 60 L 92 556" marker-end="url(#m5n)"/>
+    <text class="t-tiny" x="104" y="52">VÒNG 1</text>
+
+    <rect class="bx" x="130" y="60" width="300" height="72" rx="2"/>
+    <text class="t-lbl" x="144" y="82">Ba hướng phân rã</text>
+    <text class="t-tiny" x="144" y="102">đối tượng · điều kiện kích hoạt ·</text>
+    <text class="t-tiny" x="144" y="118">suy luận</text>
+
+    <rect class="bx" x="130" y="150" width="300" height="72" rx="2"/>
+    <text class="t-lbl" x="144" y="172">Truy xuất lần một</text>
+    <text class="t-tiny" x="144" y="192">tìm được quy định lưu trữ dữ liệu</text>
+    <text class="t-tiny" x="144" y="210">trong Luật An ninh mạng</text>
+    <path class="ln" d="M 280 132 L 280 146" marker-end="url(#m5n)"/>
+
+    <rect class="bx-o" x="130" y="256" width="300" height="72" rx="2"/>
+    <text class="t-lbl" x="144" y="278">Chưa thấy điều kiện kích hoạt</text>
+    <text class="t-tiny" x="144" y="298">phần đó nằm ở nghị định hướng dẫn,</text>
+    <text class="t-tiny" x="144" y="316">chưa được truy xuất tới trong vòng này</text>
+    <path class="ln" d="M 280 222 L 280 252" marker-end="url(#m5n)"/>
+
+    <rect class="bx-o" x="130" y="362" width="300" height="60" rx="2"/>
+    <text class="t-lbl" x="144" y="384">Trạng thái: Thiếu</text>
+    <text class="t-tiny" x="144" y="404">fact thiếu: trình tự và điều kiện</text>
+    <path class="ln-a" d="M 280 328 L 280 358" marker-end="url(#m5a)"/>
+
+    <rect class="bx-o" x="130" y="456" width="300" height="60" rx="2"/>
+    <text class="t-lbl" x="144" y="478">Quyết định: lập lại kế hoạch</text>
+    <text class="t-tiny" x="144" y="498">định hướng theo đúng fact còn thiếu</text>
+    <path class="ln-a" d="M 280 422 L 280 452" marker-end="url(#m5a)"/>
+
+    <path class="ln-a" d="M 430 486 L 572 486 L 572 232 L 616 232" marker-end="url(#m5a)"/>
+    <text class="t-tiny" x="436" y="300">kế hoạch mới nhắm</text>
+    <text class="t-tiny" x="436" y="316">thẳng vào phần</text>
+    <text class="t-tiny" x="436" y="332">nghị định còn trống</text>
+
+    <path class="ln" d="M 600 60 L 600 556" marker-end="url(#m5n)"/>
+    <text class="t-tiny" x="612" y="52">VÒNG 2</text>
+
+    <rect class="bx" x="620" y="196" width="290" height="72" rx="2"/>
+    <text class="t-lbl" x="634" y="218">Truy xuất lần hai</text>
+    <text class="t-tiny" x="634" y="238">bổ sung được phần nghị định</text>
+    <text class="t-tiny" x="634" y="256">hướng dẫn về trình tự và điều kiện</text>
+
+    <rect class="bx-g" x="620" y="296" width="290" height="60" rx="2"/>
+    <text class="t-lbl" x="634" y="318">Trạng thái: Đủ</text>
+    <text class="t-tiny" x="634" y="338">không còn fact thiếu, không mâu thuẫn</text>
+    <path class="ln-g" d="M 765 272 L 765 292" marker-end="url(#m5g)"/>
+
+    <rect class="bx-g" x="620" y="386" width="290" height="76" rx="2"/>
+    <text class="t-lbl" x="634" y="408">Sinh câu trả lời kèm trích dẫn</text>
+    <text class="t-tiny" x="634" y="428">mỗi khẳng định gắn với đoạn văn bản</text>
+    <text class="t-tiny" x="634" y="446">đã làm căn cứ cho nó</text>
+    <path class="ln-g" d="M 765 360 L 765 382" marker-end="url(#m5g)"/>
+
+    <text class="t-tiny" x="620" y="502">SỐ ĐIỀU VÀ SỐ KHOẢN CỤ THỂ</text>
+    <text class="t-tiny" x="620" y="520">còn để trống, xem chú thích dưới hình.</text>
+    <text class="t-tiny" x="620" y="544">Cần đối chiếu với kho văn bản</text>
+    <text class="t-tiny" x="620" y="560">trước khi công bố.</text>
+  </svg>
+  </div>
+  <figcaption><strong>Khác biệt nằm ở vòng một, không nằm ở câu trả lời cuối.</strong> Hình này cho thấy luồng cải tiến không trả lời hay hơn ở cùng một lượng bằng chứng; nó khác ở chỗ vòng một kết thúc bằng một danh sách fact còn thiếu thay vì một chữ sai. Nhờ danh sách đó, vòng hai biết phải đi tìm phần nghị định hướng dẫn, thay vì phát lại một truy vấn gần giống truy vấn cũ. <strong>Chú thích về trích dẫn:</strong> các số điều, số khoản và số hiệu nghị định cụ thể trong ca này <span class="mono">[còn để trống]</span>, phải đối chiếu với kho văn bản trước khi công bố. Hình chỉ ghi tên văn bản chung là Luật An ninh mạng và nghị định hướng dẫn. Ngoài ra, <span class="mono">[số vòng tối đa còn để trống]</span> vì ngưỡng đó phụ thuộc cấu hình chạy.</figcaption>
+  </figure>
+
+  <div class="grid3">
+    <div class="gcard">
+      <h4>Chưa có cơ sở</h4>
+      <p>Hệ thống kết luận doanh nghiệp phải đặt máy chủ tại Việt Nam, nhưng bằng chứng chỉ nói tới lưu trữ dữ liệu. Kết luận đi xa hơn bằng chứng nên bị chặn.</p>
+    </div>
+    <div class="gcard">
+      <h4>Mâu thuẫn</h4>
+      <p>Hai đoạn trong kho nói khác nhau vì một đoạn thuộc bản đã bị sửa đổi. Xử lý bằng cách chọn theo hiệu lực văn bản.</p>
+    </div>
+    <div class="gcard">
+      <h4>Vì sao tách hai ca này</h4>
+      <p>Cả hai đều là câu trả lời sai, nhưng cách sửa ngược nhau: một ca phải đi tìm thêm bằng chứng, ca kia phải bỏ bớt một nguồn.</p>
+    </div>
+  </div>
+
+  <p class="col">Hai ô trên là hai trạng thái còn lại của bộ đánh giá, gặp ngay trong cùng bộ dữ liệu luật. Ca <strong>chưa có cơ sở</strong> xảy ra khi mô hình suy rộng từ lưu trữ dữ liệu sang đặt máy chủ: hai việc khác nhau, và kho chỉ nói về việc thứ nhất. Ca <strong>mâu thuẫn</strong> xảy ra khi kho còn giữ cả bản đã bị sửa đổi, nên hai đoạn cùng nói về một nghĩa vụ mà nói ngược nhau. Cả hai ca này đều lọt qua bộ chấm đúng sai của bản gốc, vì câu chữ cuối cùng đọc lên vẫn trôi chảy và vẫn chứa một câu trả lời.</p>
+
+  <p class="col"><strong>Ba khái niệm hay bị dùng lẫn, phân biệt cho rõ.</strong> <em>Fact</em> là câu khẳng định rút ra trong lúc chạy, ví dụ &ldquo;doanh nghiệp cung cấp dịch vụ mạng xã hội thuộc diện phải lưu trữ dữ liệu&rdquo;. Nó do hệ thống tạo ra, có thể đúng có thể sai, và tồn tại trong sổ theo dõi fact. <em>Evidence</em> là đoạn văn bản luật thật sự nói điều đó, tức phần chữ nằm trong kho đã làm căn cứ cho khẳng định trên. Không có evidence thì fact chỉ là phỏng đoán, và đó chính là trạng thái chưa có cơ sở. <em>Nguồn gốc bằng chứng</em> là tên văn bản, điều, khoản và mã chunk lấy ra, tức địa chỉ của evidence trong kho. Ba thứ này xếp theo thứ tự hẹp dần: một fact có thể cần nhiều evidence, và mỗi evidence có đúng một nguồn gốc bằng chứng. Hình 3 tách nhóm bằng chứng và nhóm sổ theo dõi fact chính là để giữ ba tầng đó không trộn vào nhau.</p>
+  <p class="note">Đối chiếu sang code thật: Bộ sinh câu trả lời hiện tại đã hỗ trợ sinh trích dẫn kèm mã chunk và tên tài liệu.</p>
+</section>
+
+<!-- ============ 06 ============ -->
+<section id="s6">
+  <div class="sec-head"><span class="sec-num">06</span><h2>Đối chiếu và giới hạn</h2></div>
+  <p class="sec-sub">Bảng dưới so hai luồng theo khía cạnh, không theo tên thành phần, để thấy chênh lệch nằm ở hành vi chứ không ở chỗ đặt tên. Phần sau nói thẳng ba chỗ còn hở của chính đề xuất này.</p>
+
+  <div class="tw">
+  <table class="filemap">
+    <thead><tr><th>Khía cạnh</th><th>Bản gốc</th><th>Bản cải tiến</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>cái gì được lưu lại</td>
+        <td style="font-family:var(--sans)">Chỉ lưu lịch sử, không phân loại: truy vấn con, kết quả truy xuất và câu trả lời từng bước. Không mục nào nói mục nào đã trả lời được câu hỏi.</td>
+        <td style="font-family:var(--sans)">Trạng thái bằng chứng có cấu trúc, chia bốn nhóm: định danh, bằng chứng kèm nguồn gốc bằng chứng, sổ theo dõi fact, và kết quả trung gian.</td>
+      </tr>
+      <tr>
+        <td>ai quyết định dừng</td>
+        <td style="font-family:var(--sans)">Bộ chấm đúng sai ở cuối vòng, chỉ đọc câu chữ của câu trả lời từng bước.</td>
+        <td style="font-family:var(--sans)">Bộ đánh giá dựa trên bằng chứng, đọc trạng thái và trả về một trong bốn trạng thái, trong đó chỉ trạng thái đủ mới dừng.</td>
+      </tr>
+      <tr>
+        <td>khi chưa xong thì làm gì</td>
+        <td style="font-family:var(--sans)">Sinh truy vấn bổ sung từ lịch sử rồi quay lại bộ lập kế hoạch. Không có danh sách nào nói còn thiếu gì, nên vòng sau phải đoán.</td>
+        <td style="font-family:var(--sans)">Đọc danh sách còn trống từ trạng thái rồi lập lại kế hoạch có định hướng. Hai trạng thái còn lại đi đường riêng, không lập lại kế hoạch: mâu thuẫn thì đối chiếu theo hiệu lực văn bản, chưa có cơ sở thì truy xuất thêm bằng chứng hỗ trợ, cả hai quay thẳng về bộ thực thi.</td>
+      </tr>
+      <tr>
+        <td>có biết nguồn gốc bằng chứng không</td>
+        <td style="font-family:var(--sans)">Không. Kết quả truy xuất được lưu như một khối, không tách theo từng khẳng định, nên không nối được một câu trả lời về đoạn văn đã làm căn cứ cho nó.</td>
+        <td style="font-family:var(--sans)">Có. Mỗi mục bằng chứng mang theo nguồn gốc bằng chứng gồm văn bản, điều, khoản, node, quan hệ và chunk, nên truy được từ câu trả lời về đúng đoạn văn.</td>
+      </tr>
+      <tr>
+        <td>xử lý mâu thuẫn ra sao</td>
+        <td style="font-family:var(--sans)">Không xử lý. Hai đoạn nói ngược nhau cùng nằm trong kết quả truy xuất và cùng đi vào bộ sinh câu trả lời, mô hình tự chọn một bên.</td>
+        <td style="font-family:var(--sans)">Tách thành trạng thái riêng, liệt kê từng cặp xung đột, rồi đối chiếu và chọn theo hiệu lực văn bản: bản mới đè bản đã bị sửa đổi.</td>
+      </tr>
+      <tr>
+        <td>khi nào chịu dừng hẳn</td>
+        <td style="font-family:var(--sans)">Khi bộ chấm kết quả nói xong, hoặc khi hết số vòng cho phép. Hết vòng thì dừng bất kể còn thiếu gì.</td>
+        <td style="font-family:var(--sans)">Khi trạng thái là đủ, hoặc khi chạm trần vòng. Chạm trần thì vẫn trả lời nhưng kèm cảnh báo nêu rõ phần còn thiếu.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <span class="src">từ thiết kế đề xuất · cột bản gốc theo vòng lặp trong bài báo gốc, không phải cấu hình mặc định của repo</span>
+
+  <p class="col"><strong>Giới hạn thứ nhất: dữ liệu chưa mang số trang và mục.</strong> Trường nguồn gốc bằng chứng trong trạng thái có chỗ cho văn bản, điều, khoản, node, quan hệ và chunk, nhưng dữ liệu hiện có chưa gắn số trang và số mục vào từng chunk. Hệ quả là trích dẫn chỉ tới được mức chunk, người đọc muốn kiểm chứng vẫn phải tự mở văn bản ra dò. Muốn trích dẫn tới mức trang và mục thì phải bổ sung trường đó ở khâu dựng chỉ mục trước, không phải ở khâu trả lời.</p>
+
+  <p class="col"><strong>Giới hạn thứ hai: bộ đánh giá cần cơ chế chặn lặp vô hạn.</strong> Bốn trạng thái làm rõ lý do lặp, nhưng cũng mở thêm đường lặp: một vòng có thể liên tục trả về thiếu dù đã truy xuất thêm. Cơ chế cần có là đếm số vòng, đồng thời so số fact còn thiếu giữa hai vòng liên tiếp; nếu con số đó không giảm thì dừng ngay và trả lời kèm cảnh báo, thay vì chạy tới hết trần rồi mới dừng. Đếm vòng một mình là chưa đủ, vì nó chỉ phát hiện lặp lâu chứ không phát hiện lặp vô ích.</p>
+
+  <p class="col"><strong>Giới hạn thứ ba: baseline so sánh phải là pipeline chạy lặp.</strong> Nếu đem luồng cải tiến so với cấu hình mặc định vốn chỉ chạy một vòng thì kết quả chắc chắn nghiêng về phía cải tiến, nhưng phần thắng đó đến từ việc chạy thêm vòng chứ không đến từ trạng thái bằng chứng. Baseline đúng là pipeline chạy lặp cùng số vòng, để chênh lệch đo được đúng một thứ: giá trị của việc biết mình còn thiếu cái gì. Repo đã có sẵn một pipeline chạy lặp với trần vòng mặc định là năm, nên baseline này không phải dựng mới.</p>
+
+  <p class="note">Ghi chú về trích dẫn: trang này không nêu số điều, số khoản hay số hiệu nghị định cụ thể nào. Mọi chỗ cần số đều để dạng <span class="mono">[còn để trống]</span> và phải đối chiếu với kho văn bản trước khi công bố.</p>
+</section>
+
+</div>
+
+<footer>
+  <p><strong>Nguồn.</strong> Mục 02 vẽ vòng lặp theo bài báo gốc. Các dòng đối chiếu ở mục 02, 03, 04, 05 nói rõ chỗ nào khớp và chỗ nào lệch so với pipeline hiện tại của OpenSPG/KAG 0.8.0. Mục 03, 04 và phần lớn mục 05 là thiết kế đề xuất của nhóm nghiên cứu, chưa có trong repo. Năm sơ đồ đều vẽ tay bằng SVG nội tuyến, dùng lại bộ lớp trong <span class="mono">assets/css/diagram.css</span> nên chúng đổi màu theo nút Sáng / Tối.</p>
+  <p><strong>Những chỗ còn để trống.</strong> Một, số điều và số khoản cụ thể của ca luật ở mục 05. Hai, số hiệu nghị định hướng dẫn và mốc hiệu lực của nó. Ba, số vòng tối đa cho phép trước khi dừng kèm cảnh báo. Bốn, ngưỡng số fact thiếu không giảm dùng để phát hiện lặp vô ích. Năm, kết quả đo thực nghiệm giữa hai luồng, chưa chạy nên chưa có số.</p>
+  <p><a href="index.html">&larr; Quay lại trang KAG hoạt động thế nào</a></p>
+</footer>
+
+</main>
+</div>
+
+<script src="assets/js/app.js" defer></script>
+
+</body>
+</html>
